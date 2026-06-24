@@ -3,20 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>G69 Dashboard</title>
+    <title>G69 Health Link</title>
     <style>
-        body { font-family: sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; }
-        .btn { background: #007bff; color: white; border: none; padding: 15px 30px; font-size: 16px; border-radius: 25px; cursor: pointer; font-weight: bold; width: 100%; max-width: 300px; }
+        body { font-family: -apple-system, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; }
+        .btn { background: #007bff; color: white; border: none; padding: 15px 30px; font-size: 16px; border-radius: 25px; cursor: pointer; font-weight: bold; width: 100%; max-width: 300px; margin: 10px auto; display: block; }
+        .btn-green { background: #28a745; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
         .card { background: #1e1e1e; padding: 20px; border-radius: 15px; }
-        .val { font-size: 24px; font-weight: bold; color: #00ffcc; margin-top: 5px; }
-        .log { margin-top: 20px; background: #000; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 11px; color: #39ff14; text-align: left; max-height: 150px; overflow-y: auto; }
+        .val { font-size: 26px; font-weight: bold; color: #00ffcc; margin-top: 5px; }
+        .log { margin-top: 20px; background: #000; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 11px; color: #39ff14; text-align: left; max-height: 120px; overflow-y: auto; }
     </style>
 </head>
 <body>
 
     <h1>G69 Monitor</h1>
     <button class="btn" id="connect">CONNECT WATCH</button>
+    <button class="btn btn-green" id="exportBtn" style="display:none;">PREPARE HEALTH FILE</button>
 
     <div class="grid">
         <div class="card"><div>Skin Temp</div><div id="temp" class="val">--°C</div></div>
@@ -28,6 +30,9 @@
 
 <script>
     const logDiv = document.getElementById('log');
+    let finalTemp = 0;
+    let finalHrv = 0;
+
     function log(msg) { logDiv.innerHTML += '<br>> ' + msg; logDiv.scrollTop = logDiv.scrollHeight; }
 
     document.getElementById('connect').addEventListener('click', async () => {
@@ -40,15 +45,53 @@
             
             log("Connecting to: " + device.name);
             const server = await device.gatt.connect();
-            log("Connected! Ready to parse packets.");
+            log("Connected! Fetching sensor packets...");
+
+            // Look for generic health service characteristics
+            const service = await server.getPrimaryService('0000fff0-0000-1000-8000-00805f9b34fb');
+            const characteristic = await service.getCharacteristic('0000fff1-0000-1000-8000-00805f9b34fb');
             
-            // Temporary baseline data simulation to prove UI works on connection
-            document.getElementById('temp').innerText = "36.5°C";
-            document.getElementById('hrv').innerText = "55ms";
+            await characteristic.startNotifications();
+            log("Listening to stream matrix...");
+
+            characteristic.addEventListener('characteristicvaluechanged', (event) => {
+                let data = event.target.value;
+                
+                // Parse standard byte arrays for white-label health chips
+                if (data.byteLength >= 4) {
+                    let rawTemp = data.getUint16(0, true) / 10;
+                    let rawHrv = data.getUint8(2);
+
+                    if (rawTemp > 30 && rawTemp < 43) {
+                        finalTemp = rawTemp.toFixed(1);
+                        document.getElementById('temp').innerText = finalTemp + "°C";
+                    }
+                    if (rawHrv > 10 && rawHrv < 200) {
+                        finalHrv = rawHrv;
+                        document.getElementById('hrv').innerText = finalHrv + "ms";
+                    }
+                    
+                    if(finalTemp > 0 || finalHrv > 0) {
+                        document.getElementById('exportBtn').style.display = 'block';
+                    }
+                }
+            });
             
         } catch(e) { log("Error: " + e.message); }
+    });
+
+    // Generates the file that Apple Shortcuts reads automatically
+    document.getElementById('exportBtn').addEventListener('click', () => {
+        const dataContent = `${finalTemp},${finalHrv}`;
+        const blob = new Blob([dataContent], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'health_data.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        log("File saved! Ready for Apple Shortcuts automation.");
     });
 </script>
 </body>
 </html>
-
