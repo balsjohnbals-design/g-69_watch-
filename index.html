@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G69 Dashboard</title>
+    <style>
+        body { font-family: sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; }
+        .btn { background: #007bff; color: white; border: none; padding: 15px 30px; font-size: 16px; border-radius: 25px; cursor: pointer; font-weight: bold; width: 100%; max-width: 300px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .card { background: #1e1e1e; padding: 20px; border-radius: 15px; }
+        .val { font-size: 24px; font-weight: bold; color: #00ffcc; margin-top: 5px; }
+        .log { margin-top: 20px; background: #000; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 11px; color: #39ff14; text-align: left; max-height: 150px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+
+    <h1>G69 Monitor</h1>
+    <button class="btn" id="connect">CONNECT WATCH</button>
+
+    <div class="grid">
+        <div class="card"><div>Skin Temp</div><div id="temp" class="val">--°C</div></div>
+        <div class="card"><div>HRV</div><div id="hrv" class="val">--ms</div></div>
+    </div>
+
+    <h3>Console Log</h3>
+    <div id="log" class="log">Ready to connect...</div>
+
+<script>
+    const logDiv = document.getElementById('log');
+    function log(msg) { logDiv.innerHTML += '<br>> ' + msg; logDiv.scrollTop = logDiv.scrollHeight; }
+
+    document.getElementById('connect').addEventListener('click', async () => {
+        try {
+            log("Opening Bluetooth scanner...");
+            const device = await navigator.bluetooth.requestDevice({
+                acceptAllDevices: true,
+                optionalServices: ['0000180d', '0000180f', '0000fff0-0000-1000-8000-00805f9b34fb']
+            });
+            
+            log("Connecting to: " + device.name);
+            const server = await device.gatt.connect();
+            log("Connected! Ready to parse packets.");
+            
+            // Temporary baseline data simulation to prove UI works on connection
+            document.getElementById('temp').innerText = "36.5°C";
+            document.getElementById('hrv').innerText = "55ms";
+            
+        } catch(e) { log("Error: " + e.message); }
+    });
+</script>
+</body>
+</html>
+
