@@ -3,27 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>G69 Matrix Core</title>
+    <title>G69 Matrix Core v3</title>
     <style>
         body { font-family: -apple-system, sans-serif; background: #0b0f19; color: #fff; text-align: center; padding: 15px; margin: 0; }
         .btn { background: #007bff; color: white; border: none; padding: 16px 30px; font-size: 16px; border-radius: 30px; cursor: pointer; font-weight: bold; width: 90%; max-width: 340px; margin: 10px auto; display: block; box-shadow: 0 4px 15px rgba(0,123,255,0.4); }
-        .btn-green { background: #28a745; box-shadow: 0 4px 15px rgba(40,167,69,0.4); }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; padding: 5px; }
         .card { background: #161c2e; padding: 15px; border-radius: 18px; border: 1px solid #232d4b; }
         .card-full { grid-column: span 2; }
         .label { font-size: 13px; color: #8e9bb8; text-transform: uppercase; letter-spacing: 0.5px; }
         .val { font-size: 26px; font-weight: bold; color: #00ffcc; margin-top: 6px; }
         .unit { font-size: 14px; color: #6b7c96; margin-left: 2px; }
-        .log { margin-top: 15px; background: #05070f; padding: 12px; border-radius: 12px; font-family: monospace; font-size: 11px; color: #39ff14; text-align: left; max-height: 200px; overflow-y: auto; border: 1px solid #111a2e; }
+        .log { margin-top: 15px; background: #05070f; padding: 12px; border-radius: 12px; font-family: monospace; font-size: 11px; color: #39ff14; text-align: left; max-height: 220px; overflow-y: auto; border: 1px solid #111a2e; }
     </style>
 </head>
 <body>
 
-    <h2 style="margin-bottom: 5px; color: #f0f4f8;">G69 Dashboard</h2>
-    <p style="color:#6b7c96; font-size:12px; margin:0 0 15px 0;">Max-Refresh Telemetry Profile</p>
+    <h2 style="margin-bottom: 5px; color: #f0f4f8;">G69 Deep Scan</h2>
+    <p style="color:#6b7c96; font-size:12px; margin:0 0 15px 0;">Service Discovery Profile</p>
     
     <button class="btn" id="connect">ESTABLISH LIVE STREAM</button>
-    <button class="btn btn-green" id="exportBtn" style="display:none;">EXPORT FOR APPLE HEALTH</button>
 
     <div class="grid">
         <div class="card">
@@ -48,107 +46,65 @@
         </div>
     </div>
 
-    <div id="log" class="log">System initialized. Ready...</div>
+    <div id="log" class="log">Ready for Deep Scan v3...</div>
 
 <script>
     const logDiv = document.getElementById('log');
-    let metrics = { temp: null, hrv: null, hr: null, spo2: null };
-
-    function log(msg) { 
-        logDiv.innerHTML += '<br>> ' + msg; 
-        logDiv.scrollTop = logDiv.scrollHeight; 
-    }
-
+    function log(msg) { logDiv.innerHTML += '<br>> ' + msg; logDiv.scrollTop = logDiv.scrollHeight; }
     const delay = ms => new Promise(res => setTimeout(res, ms));
 
     document.getElementById('connect').addEventListener('click', async () => {
         try {
-            if (!navigator.bluetooth) {
-                log("ERROR: Browser does not support Web Bluetooth.");
+            log("Scanning all nearby services...");
+            const device = await navigator.bluetooth.requestDevice({
+                acceptAllDevices: true,
+                optionalServices: [
+                    '0000fff0-0000-1000-8000-00805f9b34fb',
+                    '0000fee7-0000-1000-8000-00805f9b34fb', 
+                    '0000180d', '0000180f'
+                ]
+            });
+            
+            log("Connecting to GATT...");
+            const server = await device.gatt.connect();
+            
+            log("Link active. Waiting 2s for hardware spin-up...");
+            await delay(2000);
+
+            log("Mapping primary services...");
+            const services = await server.getPrimaryServices();
+            
+            if(services.length === 0) {
+                log("No services exposed. Device might be locked by another app.");
                 return;
             }
 
-            log("Scanning for QWatch hardware...");
-            // Filter by the main targeted custom service line to isolate the watch
-            const device = await navigator.bluetooth.requestDevice({
-                filters: [{ namePrefix: 'G69' }],
-                optionalServices: ['0000fff0-0000-1000-8000-00805f9b34fb', '0000180f', '0000180d']
-            });
-            
-            log("Connecting to GATT: " + device.name);
-            const server = await device.gatt.connect();
-            
-            log("Connected. Pausing to stabilize link...");
-            await delay(1500); 
-
-            log("Fetching primary service...");
-            const service = await server.getPrimaryService('0000fff0-0000-1000-8000-00805f9b34fb');
-            
-            log("Scanning available characteristics...");
-            const characteristics = await service.getCharacteristics();
-            
-            // Map out exactly what this chip is exposed to read/write/notify
-            characteristics.forEach(c => {
-                let rights = [];
-                if (c.properties.read) rights.push("READ");
-                if (c.properties.write) rights.push("WRITE");
-                if (c.properties.notify) rights.push("NOTIFY");
-                log(`Found Base ID: ...${c.uuid.substring(4,8).toUpperCase()} [${rights.join('/')}]`);
-            });
-
-            // Target the main notification channel dynamically
-            const notifyChar = characteristics.find(c => c.properties.notify);
-            const writeChar = characteristics.find(c => c.properties.write || c.properties.writeWithoutResponse);
-
-            if (notifyChar) {
-                log(`Hooking notify stream: ...${notifyChar.uuid.substring(4,8).toUpperCase()}`);
-                await notifyChar.startNotifications();
+            for (let svc of services) {
+                let shortSvc = svc.uuid.substring(4,8).toUpperCase();
+                log(`[Service] Found ID: 0x${shortSvc}`);
                 
-                notifyChar.addEventListener('characteristicvaluechanged', (event) => {
-                    let data = event.target.value;
-                    log(`Raw hex received. Bytes: ${data.byteLength}`);
-                    
-                    // Simple parse test to see if numbers shift when worn
-                    if (data.byteLength >= 4) {
-                        let hrTest = data.getUint8(3);
-                        if (hrTest > 40 && hrTest < 220) {
-                            document.getElementById('hr').innerHTML = hrTest + '<span class="unit">bpm</span>';
-                            metrics.hr = hrTest;
-                        }
+                try {
+                    let characteristics = await svc.getCharacteristics();
+                    for (let ch of characteristics) {
+                        let shortCh = ch.uuid.substring(4,8).toUpperCase();
+                        let props = [];
+                        if(ch.properties.read) props.push("R");
+                        if(ch.properties.write) props.push("W");
+                        if(ch.properties.notify) props.push("N");
+                        log(`  └─ [Char] 0x${shortCh} [${props.join('/')}]`);
                     }
-                    document.getElementById('exportBtn').style.display = 'block';
-                });
-                
-                log("Stream active. Watching raw packets...");
-            } else {
-                log("Error: No data streaming channel found.");
+                } catch(cErr) {
+                    log(`  └─ Could not index characteristics`);
+                }
             }
-
-            // Quick grab on the standard battery layout
-            try {
-                const batSvc = await server.getPrimaryService('0000180f');
-                const batChr = await batSvc.getCharacteristic('00002a19');
-                const batVal = await batChr.readValue();
-                document.getElementById('battery').innerHTML = batVal.getUint8(0) + '<span class="unit">%</span>';
-            } catch(e) {}
-
+            
+            log("--- Scan Complete ---");
+            
         } catch(e) {
-            log("Fail details: " + (e.message || JSON.stringify(e)));
+            log("CRITICAL ERROR: " + (e.message || "Unknown GATT breakdown"));
         }
-    });
-
-    document.getElementById('exportBtn').addEventListener('click', () => {
-        const timestamp = new Date().toISOString();
-        const csvHeader = "Timestamp,Temp(C),HRV(ms),HR(bpm),SpO2(%)\n";
-        const csvRow = `${timestamp},${metrics.temp || ''},${metrics.hrv || ''},${metrics.hr || ''},${metrics.spo2 || ''}`;
-        const blob = new Blob([csvHeader + csvRow], { type: 'text/csv' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'G69_health_export.csv';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
     });
 </script>
 </body>
 </html>
+
