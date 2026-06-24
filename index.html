@@ -9,7 +9,7 @@
         .btn { background: #007bff; color: white; border: none; padding: 16px 30px; font-size: 16px; border-radius: 30px; cursor: pointer; font-weight: bold; width: 90%; max-width: 340px; margin: 10px auto; display: block; box-shadow: 0 4px 15px rgba(0,123,255,0.4); }
         .btn-green { background: #28a745; box-shadow: 0 4px 15px rgba(40,167,69,0.4); }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; padding: 5px; }
-        .card { background: #161c2e; padding: 15px; border-radius: 18px; border: 1px solid #232d4b; }
+        .card { background: #161c2e; padding: 15px; border-radius: 18px; border: 1px solid #232d4b; transition: all 0.2s; }
         .card-full { grid-column: span 2; }
         .label { font-size: 13px; color: #8e9bb8; text-transform: uppercase; letter-spacing: 0.5px; }
         .val { font-size: 26px; font-weight: bold; color: #00ffcc; margin-top: 6px; }
@@ -20,10 +20,10 @@
 <body>
 
     <h2 style="margin-bottom: 5px; color: #f0f4f8;">G69 Dashboard</h2>
-    <p style="color:#6b7c96; font-size:12px; margin:0 0 15px 0;">Safe Telemetry Streaming Profile</p>
+    <p style="color:#6b7c96; font-size:12px; margin:0 0 15px 0;">Max-Refresh Telemetry Profile</p>
     
     <button class="btn" id="connect">ESTABLISH LIVE STREAM</button>
-    <button class="btn btn-green" id="exportBtn" style="display:none;">COMPILE HEALTH FILE</button>
+    <button class="btn btn-green" id="exportBtn" style="display:none;">EXPORT FOR APPLE HEALTH</button>
 
     <div class="grid">
         <div class="card">
@@ -53,12 +53,20 @@
 <script>
     const logDiv = document.getElementById('log');
     let keepAliveInterval = null;
-    let metrics = { temp: 0, hrv: 0, hr: 0, spo2: 0 };
+    let metrics = { temp: null, hrv: null, hr: null, spo2: null };
 
-    function log(msg) { logDiv.innerHTML += '<br>> ' + msg; logDiv.scrollTop = logDiv.scrollHeight; }
+    function log(msg) { 
+        logDiv.innerHTML += '<br>> ' + msg; 
+        logDiv.scrollTop = logDiv.scrollHeight; 
+    }
 
     document.getElementById('connect').addEventListener('click', async () => {
         try {
+            if (!navigator.bluetooth) {
+                log("ERROR: Browser does not support Web Bluetooth. Use Bluefy or WebBLE on iOS.");
+                return;
+            }
+
             log("Opening target scanner...");
             const device = await navigator.bluetooth.requestDevice({
                 acceptAllDevices: true,
@@ -76,22 +84,22 @@
             await characteristic.startNotifications();
             log("Active stream decoding live packets...");
 
-            // Protected live ping loop: prevents command-write failure from crashing the app
+            // Aggressive live ping loop: Pushed to 1000ms for maximum refresh rate
             keepAliveInterval = setInterval(async () => {
                 try {
                     const triggerCommand = new Uint8Array([0xAB, 0x0A, 0x00, 0x00, 0x00, 0x00]);
                     await characteristic.writeValue(triggerCommand);
                 } catch(writeErr) {
-                    // Suppressed: allows background listener to continue passively reading if watch locks commands
+                    // Suppressed to prevent UI crashing on command-write lockups
                 }
-            }, 4000);
+            }, 1000);
 
             characteristic.addEventListener('characteristicvaluechanged', (event) => {
                 try {
                     let data = event.target.value;
                     if (!data || data.byteLength < 3) return;
 
-                    // Core Matrix Parsing
+                    // Core Matrix Parsing (Ignoring pedometer entirely)
                     let rawTemp = data.getUint16(0, true) / 10;
                     let rawHrv = data.getUint8(2);
 
@@ -124,7 +132,7 @@
                 } catch(parseErr) {}
             });
 
-            // Isolate Battery Service so it doesn't interrupt sensor logic
+            // Battery isolated and requested once on connect
             try {
                 const batSvc = await server.getPrimaryService('0000180f');
                 const batChr = await batSvc.getCharacteristic('00002a19');
@@ -138,18 +146,21 @@
         }
     });
 
+    // Reformatted to CSV with timestamp so Apple Shortcuts can parse it
     document.getElementById('exportBtn').addEventListener('click', () => {
-        const dataContent = `${metrics.temp},${metrics.hrv},${metrics.hr},${metrics.spo2}`;
-        const blob = new Blob([dataContent], { type: 'text/plain' });
+        const timestamp = new Date().toISOString();
+        const csvHeader = "Timestamp,Temp(C),HRV(ms),HR(bpm),SpO2(%)\n";
+        const csvRow = `${timestamp},${metrics.temp || ''},${metrics.hrv || ''},${metrics.hr || ''},${metrics.spo2 || ''}`;
+        
+        const blob = new Blob([csvHeader + csvRow], { type: 'text/csv' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = 'health_data.txt';
+        a.download = 'G69_apple_health_export.csv';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        log("Data snapshot compiled!");
+        log("CSV snapshot exported for Apple Health!");
     });
 </script>
 </body>
 </html>
-
