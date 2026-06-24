@@ -9,12 +9,12 @@
         .btn { background: #007bff; color: white; border: none; padding: 16px 30px; font-size: 16px; border-radius: 30px; cursor: pointer; font-weight: bold; width: 90%; max-width: 340px; margin: 10px auto; display: block; box-shadow: 0 4px 15px rgba(0,123,255,0.4); }
         .btn-green { background: #28a745; box-shadow: 0 4px 15px rgba(40,167,69,0.4); }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; padding: 5px; }
-        .card { background: #161c2e; padding: 15px; border-radius: 18px; border: 1px solid #232d4b; transition: all 0.2s; }
+        .card { background: #161c2e; padding: 15px; border-radius: 18px; border: 1px solid #232d4b; }
         .card-full { grid-column: span 2; }
         .label { font-size: 13px; color: #8e9bb8; text-transform: uppercase; letter-spacing: 0.5px; }
         .val { font-size: 26px; font-weight: bold; color: #00ffcc; margin-top: 6px; }
         .unit { font-size: 14px; color: #6b7c96; margin-left: 2px; }
-        .log { margin-top: 15px; background: #05070f; padding: 12px; border-radius: 12px; font-family: monospace; font-size: 11px; color: #39ff14; text-align: left; max-height: 120px; overflow-y: auto; border: 1px solid #111a2e; }
+        .log { margin-top: 15px; background: #05070f; padding: 12px; border-radius: 12px; font-family: monospace; font-size: 11px; color: #39ff14; text-align: left; max-height: 200px; overflow-y: auto; border: 1px solid #111a2e; }
     </style>
 </head>
 <body>
@@ -52,7 +52,6 @@
 
 <script>
     const logDiv = document.getElementById('log');
-    let keepAliveInterval = null;
     let metrics = { temp: null, hrv: null, hr: null, spo2: null };
 
     function log(msg) { 
@@ -60,106 +59,95 @@
         logDiv.scrollTop = logDiv.scrollHeight; 
     }
 
+    const delay = ms => new Promise(res => setTimeout(res, ms));
+
     document.getElementById('connect').addEventListener('click', async () => {
         try {
             if (!navigator.bluetooth) {
-                log("ERROR: Browser does not support Web Bluetooth. Use Bluefy or WebBLE on iOS.");
+                log("ERROR: Browser does not support Web Bluetooth.");
                 return;
             }
 
-            log("Opening target scanner...");
+            log("Scanning for QWatch hardware...");
+            // Filter by the main targeted custom service line to isolate the watch
             const device = await navigator.bluetooth.requestDevice({
-                acceptAllDevices: true,
-                optionalServices: ['0000180d', '0000180f', '0000fff0-0000-1000-8000-00805f9b34fb']
+                filters: [{ namePrefix: 'G69' }],
+                optionalServices: ['0000fff0-0000-1000-8000-00805f9b34fb', '0000180f', '0000180d']
             });
             
-            log("Handshaking: " + device.name);
+            log("Connecting to GATT: " + device.name);
             const server = await device.gatt.connect();
-            log("Secure connection achieved.");
-
-            // Open custom health metric pipeline
-            const service = await server.getPrimaryService('0000fff0-0000-1000-8000-00805f9b34fb');
-            const characteristic = await service.getCharacteristic('0000fff1-0000-1000-8000-00805f9b34fb');
             
-            await characteristic.startNotifications();
-            log("Active stream decoding live packets...");
+            log("Connected. Pausing to stabilize link...");
+            await delay(1500); 
 
-            // Aggressive live ping loop: Pushed to 1000ms for maximum refresh rate
-            keepAliveInterval = setInterval(async () => {
-                try {
-                    const triggerCommand = new Uint8Array([0xAB, 0x0A, 0x00, 0x00, 0x00, 0x00]);
-                    await characteristic.writeValue(triggerCommand);
-                } catch(writeErr) {
-                    // Suppressed to prevent UI crashing on command-write lockups
-                }
-            }, 1000);
-
-            characteristic.addEventListener('characteristicvaluechanged', (event) => {
-                try {
-                    let data = event.target.value;
-                    if (!data || data.byteLength < 3) return;
-
-                    // Core Matrix Parsing (Ignoring pedometer entirely)
-                    let rawTemp = data.getUint16(0, true) / 10;
-                    let rawHrv = data.getUint8(2);
-
-                    if (rawTemp > 30 && rawTemp < 45) {
-                        metrics.temp = rawTemp.toFixed(1);
-                        document.getElementById('temp').innerHTML = metrics.temp + '<span class="unit">°C</span>';
-                    }
-                    if (rawHrv > 5 && rawHrv < 250) {
-                        metrics.hrv = rawHrv;
-                        document.getElementById('hrv').innerHTML = metrics.hrv + '<span class="unit">ms</span>';
-                    }
-
-                    // Dynamically read extended array indices securely
-                    if (data.byteLength >= 4) {
-                        let rawHr = data.getUint8(3);
-                        if (rawHr > 40 && rawHr < 220) {
-                            metrics.hr = rawHr;
-                            document.getElementById('hr').innerHTML = metrics.hr + '<span class="unit">bpm</span>';
-                        }
-                    }
-                    if (data.byteLength >= 5) {
-                        let rawSpO2 = data.getUint8(4);
-                        if (rawSpO2 >= 70 && rawSpO2 <= 100) {
-                            metrics.spo2 = rawSpO2;
-                            document.getElementById('spo2').innerHTML = metrics.spo2 + '<span class="unit">%</span>';
-                        }
-                    }
-
-                    document.getElementById('exportBtn').style.display = 'block';
-                } catch(parseErr) {}
+            log("Fetching primary service...");
+            const service = await server.getPrimaryService('0000fff0-0000-1000-8000-00805f9b34fb');
+            
+            log("Scanning available characteristics...");
+            const characteristics = await service.getCharacteristics();
+            
+            // Map out exactly what this chip is exposed to read/write/notify
+            characteristics.forEach(c => {
+                let rights = [];
+                if (c.properties.read) rights.push("READ");
+                if (c.properties.write) rights.push("WRITE");
+                if (c.properties.notify) rights.push("NOTIFY");
+                log(`Found Base ID: ...${c.uuid.substring(4,8).toUpperCase()} [${rights.join('/')}]`);
             });
 
-            // Battery isolated and requested once on connect
+            // Target the main notification channel dynamically
+            const notifyChar = characteristics.find(c => c.properties.notify);
+            const writeChar = characteristics.find(c => c.properties.write || c.properties.writeWithoutResponse);
+
+            if (notifyChar) {
+                log(`Hooking notify stream: ...${notifyChar.uuid.substring(4,8).toUpperCase()}`);
+                await notifyChar.startNotifications();
+                
+                notifyChar.addEventListener('characteristicvaluechanged', (event) => {
+                    let data = event.target.value;
+                    log(`Raw hex received. Bytes: ${data.byteLength}`);
+                    
+                    // Simple parse test to see if numbers shift when worn
+                    if (data.byteLength >= 4) {
+                        let hrTest = data.getUint8(3);
+                        if (hrTest > 40 && hrTest < 220) {
+                            document.getElementById('hr').innerHTML = hrTest + '<span class="unit">bpm</span>';
+                            metrics.hr = hrTest;
+                        }
+                    }
+                    document.getElementById('exportBtn').style.display = 'block';
+                });
+                
+                log("Stream active. Watching raw packets...");
+            } else {
+                log("Error: No data streaming channel found.");
+            }
+
+            // Quick grab on the standard battery layout
             try {
                 const batSvc = await server.getPrimaryService('0000180f');
                 const batChr = await batSvc.getCharacteristic('00002a19');
                 const batVal = await batChr.readValue();
                 document.getElementById('battery').innerHTML = batVal.getUint8(0) + '<span class="unit">%</span>';
-            } catch(bErr) {}
-            
-        } catch(e) { 
-            log("Error: " + e.message); 
-            if(keepAliveInterval) clearInterval(keepAliveInterval);
+            } catch(e) {}
+
+        } catch(e) {
+            log("Fail details: " + (e.message || JSON.stringify(e)));
         }
     });
 
-    // Reformatted to CSV with timestamp so Apple Shortcuts can parse it
     document.getElementById('exportBtn').addEventListener('click', () => {
         const timestamp = new Date().toISOString();
         const csvHeader = "Timestamp,Temp(C),HRV(ms),HR(bpm),SpO2(%)\n";
         const csvRow = `${timestamp},${metrics.temp || ''},${metrics.hrv || ''},${metrics.hr || ''},${metrics.spo2 || ''}`;
-        
         const blob = new Blob([csvHeader + csvRow], { type: 'text/csv' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = 'G69_apple_health_export.csv';
+        a.download = 'G69_health_export.csv';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        log("CSV snapshot exported for Apple Health!");
     });
 </script>
 </body>
