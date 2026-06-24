@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>G69 Matrix Dashboard</title>
+    <title>G69 Matrix Core</title>
     <style>
         body { font-family: -apple-system, sans-serif; background: #0b0f19; color: #fff; text-align: center; padding: 15px; margin: 0; }
         .btn { background: #007bff; color: white; border: none; padding: 16px 30px; font-size: 16px; border-radius: 30px; cursor: pointer; font-weight: bold; width: 90%; max-width: 340px; margin: 10px auto; display: block; box-shadow: 0 4px 15px rgba(0,123,255,0.4); }
@@ -19,8 +19,8 @@
 </head>
 <body>
 
-    <h2 style="margin-bottom: 5px; color: #f0f4f8;">G69 Absolute Control</h2>
-    <p style="color:#6b7c96; font-size:12px; margin:0 0 15px 0;">Continuous Biosensor Capture System</p>
+    <h2 style="margin-bottom: 5px; color: #f0f4f8;">G69 Dashboard</h2>
+    <p style="color:#6b7c96; font-size:12px; margin:0 0 15px 0;">Safe Telemetry Streaming Profile</p>
     
     <button class="btn" id="connect">ESTABLISH LIVE STREAM</button>
     <button class="btn btn-green" id="exportBtn" style="display:none;">COMPILE HEALTH FILE</button>
@@ -43,10 +43,6 @@
             <div id="spo2" class="val">--<span class="unit">%</span></div>
         </div>
         <div class="card card-full">
-            <div class="label">Active Steps</div>
-            <div id="steps" class="val">--<span class="unit">steps</span></div>
-        </div>
-        <div class="card card-full">
             <div class="label">Tracker Charge</div>
             <div id="battery" class="val" style="color: #ffcc00;">--<span class="unit">%</span></div>
         </div>
@@ -57,7 +53,7 @@
 <script>
     const logDiv = document.getElementById('log');
     let keepAliveInterval = null;
-    let metrics = { temp: 0, hrv: 0, hr: 0, spo2: 0, steps: 0 };
+    let metrics = { temp: 0, hrv: 0, hr: 0, spo2: 0 };
 
     function log(msg) { logDiv.innerHTML += '<br>> ' + msg; logDiv.scrollTop = logDiv.scrollHeight; }
 
@@ -69,35 +65,37 @@
                 optionalServices: ['0000180d', '0000180f', '0000fff0-0000-1000-8000-00805f9b34fb']
             });
             
-            log("Handshaking with: " + device.name);
+            log("Handshaking: " + device.name);
             const server = await device.gatt.connect();
-            log("Secure pipeline bound.");
+            log("Secure connection achieved.");
 
-            // Primary Custom Stream Service
+            // Open custom health metric pipeline
             const service = await server.getPrimaryService('0000fff0-0000-1000-8000-00805f9b34fb');
             const characteristic = await service.getCharacteristic('0000fff1-0000-1000-8000-00805f9b34fb');
             
             await characteristic.startNotifications();
-            log("Subscribed to the data stream matrix.");
+            log("Active stream decoding live packets...");
 
-            // Keep alive continuous streaming loop
+            // Protected live ping loop: prevents command-write failure from crashing the app
             keepAliveInterval = setInterval(async () => {
                 try {
                     const triggerCommand = new Uint8Array([0xAB, 0x0A, 0x00, 0x00, 0x00, 0x00]);
                     await characteristic.writeValue(triggerCommand);
-                } catch(e) {}
-            }, 3000);
+                } catch(writeErr) {
+                    // Suppressed: allows background listener to continue passively reading if watch locks commands
+                }
+            }, 4000);
 
             characteristic.addEventListener('characteristicvaluechanged', (event) => {
                 try {
                     let data = event.target.value;
-                    if (!data || data.byteLength < 4) return;
+                    if (!data || data.byteLength < 3) return;
 
-                    // Fallback-safe parsing: check length to prevent crashing on smaller data arrays
+                    // Core Matrix Parsing
                     let rawTemp = data.getUint16(0, true) / 10;
                     let rawHrv = data.getUint8(2);
-                    
-                    if (rawTemp > 30 && rawTemp < 44) {
+
+                    if (rawTemp > 30 && rawTemp < 45) {
                         metrics.temp = rawTemp.toFixed(1);
                         document.getElementById('temp').innerHTML = metrics.temp + '<span class="unit">°C</span>';
                     }
@@ -106,53 +104,42 @@
                         document.getElementById('hrv').innerHTML = metrics.hrv + '<span class="unit">ms</span>';
                     }
 
-                    // Decode index 3 and 4 safely if present
-                    if (data.byteLength >= 5) {
+                    // Dynamically read extended array indices securely
+                    if (data.byteLength >= 4) {
                         let rawHr = data.getUint8(3);
                         if (rawHr > 40 && rawHr < 220) {
                             metrics.hr = rawHr;
                             document.getElementById('hr').innerHTML = metrics.hr + '<span class="unit">bpm</span>';
                         }
                     }
-                    if (data.byteLength >= 6) {
+                    if (data.byteLength >= 5) {
                         let rawSpO2 = data.getUint8(4);
                         if (rawSpO2 >= 70 && rawSpO2 <= 100) {
                             metrics.spo2 = rawSpO2;
                             document.getElementById('spo2').innerHTML = metrics.spo2 + '<span class="unit">%</span>';
                         }
                     }
-                    if (data.byteLength >= 10) {
-                        let rawSteps = data.getUint32(7, true);
-                        if (rawSteps >= 0 && rawSteps < 100000) {
-                            metrics.steps = rawSteps;
-                            document.getElementById('steps').innerHTML = metrics.steps + '<span class="unit">steps</span>';
-                        }
-                    }
 
                     document.getElementById('exportBtn').style.display = 'block';
-                } catch(parseError) {
-                    log("Stream packet parsing skip: " + parseError.message);
-                }
+                } catch(parseErr) {}
             });
 
-            // Battery standard channel parsing
+            // Isolate Battery Service so it doesn't interrupt sensor logic
             try {
                 const batSvc = await server.getPrimaryService('0000180f');
                 const batChr = await batSvc.getCharacteristic('00002a19');
                 const batVal = await batChr.readValue();
                 document.getElementById('battery').innerHTML = batVal.getUint8(0) + '<span class="unit">%</span>';
-            } catch(bErr) {
-                log("Battery read skipped.");
-            }
+            } catch(bErr) {}
             
         } catch(e) { 
-            log("Error occurred: " + e.message); 
+            log("Error: " + e.message); 
             if(keepAliveInterval) clearInterval(keepAliveInterval);
         }
     });
 
     document.getElementById('exportBtn').addEventListener('click', () => {
-        const dataContent = `${metrics.temp},${metrics.hrv},${metrics.hr},${metrics.spo2},${metrics.steps}`;
+        const dataContent = `${metrics.temp},${metrics.hrv},${metrics.hr},${metrics.spo2}`;
         const blob = new Blob([dataContent], { type: 'text/plain' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -160,8 +147,9 @@
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        log("File compiled successfully.");
+        log("Data snapshot compiled!");
     });
 </script>
 </body>
 </html>
+
