@@ -9,12 +9,12 @@
         .btn { background: #007bff; color: white; border: none; padding: 16px 30px; font-size: 16px; border-radius: 30px; cursor: pointer; font-weight: bold; width: 90%; max-width: 340px; margin: 10px auto; display: block; box-shadow: 0 4px 15px rgba(0,123,255,0.4); }
         .btn-green { background: #28a745; box-shadow: 0 4px 15px rgba(40,167,69,0.4); }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; padding: 5px; }
-        .card { background: #161c2e; padding: 15px; border-radius: 18px; border: 1px solid #232d4b; transition: all 0.3s; }
+        .card { background: #161c2e; padding: 15px; border-radius: 18px; border: 1px solid #232d4b; }
         .card-full { grid-column: span 2; }
         .label { font-size: 13px; color: #8e9bb8; text-transform: uppercase; letter-spacing: 0.5px; }
         .val { font-size: 26px; font-weight: bold; color: #00ffcc; margin-top: 6px; }
         .unit { font-size: 14px; color: #6b7c96; margin-left: 2px; }
-        .log { margin-top: 15px; background: #05070f; padding: 12px; border-radius: 12px; font-family: monospace; font-size: 11px; color: #39ff14; text-align: left; max-height: 100px; overflow-y: auto; border: 1px solid #111a2e; }
+        .log { margin-top: 15px; background: #05070f; padding: 12px; border-radius: 12px; font-family: monospace; font-size: 11px; color: #39ff14; text-align: left; max-height: 120px; overflow-y: auto; border: 1px solid #111a2e; }
     </style>
 </head>
 <body>
@@ -52,20 +52,18 @@
         </div>
     </div>
 
-    <div id="log" class="log">System initialized. Awaiting connection...</div>
+    <div id="log" class="log">System initialized. Ready...</div>
 
 <script>
     const logDiv = document.getElementById('log');
     let keepAliveInterval = null;
-
-    // Unified health matrix values (Minus Blood Pressure)
     let metrics = { temp: 0, hrv: 0, hr: 0, spo2: 0, steps: 0 };
 
     function log(msg) { logDiv.innerHTML += '<br>> ' + msg; logDiv.scrollTop = logDiv.scrollHeight; }
 
     document.getElementById('connect').addEventListener('click', async () => {
         try {
-            log("Opening target scanner window...");
+            log("Opening target scanner...");
             const device = await navigator.bluetooth.requestDevice({
                 acceptAllDevices: true,
                 optionalServices: ['0000180d', '0000180f', '0000fff0-0000-1000-8000-00805f9b34fb']
@@ -75,33 +73,30 @@
             const server = await device.gatt.connect();
             log("Secure pipeline bound.");
 
+            // Primary Custom Stream Service
             const service = await server.getPrimaryService('0000fff0-0000-1000-8000-00805f9b34fb');
             const characteristic = await service.getCharacteristic('0000fff1-0000-1000-8000-00805f9b34fb');
             
             await characteristic.startNotifications();
-            log("Subscribed to the raw stream matrix. Overriding watch sleep interval...");
+            log("Subscribed to the data stream matrix.");
 
-            // FORCE CONSTANT TRACKING MODE: Sends a command pulse every 3 seconds
+            // Keep alive continuous streaming loop
             keepAliveInterval = setInterval(async () => {
                 try {
                     const triggerCommand = new Uint8Array([0xAB, 0x0A, 0x00, 0x00, 0x00, 0x00]);
                     await characteristic.writeValue(triggerCommand);
-                } catch(e) { /* Catch dropped connection ticks gracefully */ }
+                } catch(e) {}
             }, 3000);
 
-            // Comprehensive decoder for the white-label custom metrics packet
             characteristic.addEventListener('characteristicvaluechanged', (event) => {
-                let data = event.target.value;
-                log(`Packet caught: ${data.byteLength} bytes payload.`);
+                try {
+                    let data = event.target.value;
+                    if (!data || data.byteLength < 4) return;
 
-                if (data.byteLength >= 10) {
+                    // Fallback-safe parsing: check length to prevent crashing on smaller data arrays
                     let rawTemp = data.getUint16(0, true) / 10;
                     let rawHrv = data.getUint8(2);
-                    let rawHr = data.getUint8(3);
-                    let rawSpO2 = data.getUint8(4);
-                    let rawSteps = data.getUint32(7, true); // Typical byte-index placement for pedometer tracking
-
-                    // Validate and paint Metrics onto the dashboard layout
+                    
                     if (rawTemp > 30 && rawTemp < 44) {
                         metrics.temp = rawTemp.toFixed(1);
                         document.getElementById('temp').innerHTML = metrics.temp + '<span class="unit">°C</span>';
@@ -110,30 +105,45 @@
                         metrics.hrv = rawHrv;
                         document.getElementById('hrv').innerHTML = metrics.hrv + '<span class="unit">ms</span>';
                     }
-                    if (rawHr > 40 && rawHr < 220) {
-                        metrics.hr = rawHr;
-                        document.getElementById('hr').innerHTML = metrics.hr + '<span class="unit">bpm</span>';
+
+                    // Decode index 3 and 4 safely if present
+                    if (data.byteLength >= 5) {
+                        let rawHr = data.getUint8(3);
+                        if (rawHr > 40 && rawHr < 220) {
+                            metrics.hr = rawHr;
+                            document.getElementById('hr').innerHTML = metrics.hr + '<span class="unit">bpm</span>';
+                        }
                     }
-                    if (rawSpO2 >= 70 && rawSpO2 <= 100) {
-                        metrics.spo2 = rawSpO2;
-                        document.getElementById('spo2').innerHTML = metrics.spo2 + '<span class="unit">%</span>';
+                    if (data.byteLength >= 6) {
+                        let rawSpO2 = data.getUint8(4);
+                        if (rawSpO2 >= 70 && rawSpO2 <= 100) {
+                            metrics.spo2 = rawSpO2;
+                            document.getElementById('spo2').innerHTML = metrics.spo2 + '<span class="unit">%</span>';
+                        }
                     }
-                    if (rawSteps >= 0 && rawSteps < 100000) {
-                        metrics.steps = rawSteps;
-                        document.getElementById('steps').innerHTML = metrics.steps + '<span class="unit">steps</span>';
+                    if (data.byteLength >= 10) {
+                        let rawSteps = data.getUint32(7, true);
+                        if (rawSteps >= 0 && rawSteps < 100000) {
+                            metrics.steps = rawSteps;
+                            document.getElementById('steps').innerHTML = metrics.steps + '<span class="unit">steps</span>';
+                        }
                     }
 
                     document.getElementById('exportBtn').style.display = 'block';
+                } catch(parseError) {
+                    log("Stream packet parsing skip: " + parseError.message);
                 }
             });
 
-            // Simultaneously track battery level asynchronously
+            // Battery standard channel parsing
             try {
                 const batSvc = await server.getPrimaryService('0000180f');
                 const batChr = await batSvc.getCharacteristic('00002a19');
                 const batVal = await batChr.readValue();
                 document.getElementById('battery').innerHTML = batVal.getUint8(0) + '<span class="unit">%</span>';
-            } catch(bErr) { log("Battery polling bypassed."); }
+            } catch(bErr) {
+                log("Battery read skipped.");
+            }
             
         } catch(e) { 
             log("Error occurred: " + e.message); 
@@ -141,7 +151,6 @@
         }
     });
 
-    // Compiles all remaining fields into an array line for your Apple Shortcuts system
     document.getElementById('exportBtn').addEventListener('click', () => {
         const dataContent = `${metrics.temp},${metrics.hrv},${metrics.hr},${metrics.spo2},${metrics.steps}`;
         const blob = new Blob([dataContent], { type: 'text/plain' });
@@ -151,7 +160,7 @@
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        log("Comprehensive payload saved into folder!");
+        log("File compiled successfully.");
     });
 </script>
 </body>
