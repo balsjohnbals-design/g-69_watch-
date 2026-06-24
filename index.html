@@ -3,86 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>G69 Health Link</title>
+    <title>G69 Matrix Dashboard</title>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; }
-        .btn { background: #007bff; color: white; border: none; padding: 15px 30px; font-size: 16px; border-radius: 25px; cursor: pointer; font-weight: bold; width: 100%; max-width: 300px; margin: 10px auto; display: block; }
-        .btn-green { background: #28a745; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
-        .card { background: #1e1e1e; padding: 20px; border-radius: 15px; }
-        .val { font-size: 26px; font-weight: bold; color: #00ffcc; margin-top: 5px; }
-        .log { margin-top: 20px; background: #000; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 11px; color: #39ff14; text-align: left; max-height: 120px; overflow-y: auto; }
+        body { font-family: -apple-system, sans-serif; background: #0b0f19; color: #fff; text-align: center; padding: 15px; margin: 0; }
+        .btn { background: #007bff; color: white; border: none; padding: 16px 30px; font-size: 16px; border-radius: 30px; cursor: pointer; font-weight: bold; width: 90%; max-width: 340px; margin: 10px auto; display: block; box-shadow: 0 4px 15px rgba(0,123,255,0.4); }
+        .btn-green { background: #28a745; box-shadow: 0 4px 15px rgba(40,167,69,0.4); }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; padding: 5px; }
+        .card { background: #161c2e; padding: 15px; border-radius: 18px; border: 1px solid #232d4b; transition: all 0.3s; }
+        .card-full { grid-column: span 2; }
+        .label { font-size: 13px; color: #8e9bb8; text-transform: uppercase; letter-spacing: 0.5px; }
+        .val { font-size: 26px; font-weight: bold; color: #00ffcc; margin-top: 6px; }
+        .unit { font-size: 14px; color: #6b7c96; margin-left: 2px; }
+        .log { margin-top: 15px; background: #05070f; padding: 12px; border-radius: 12px; font-family: monospace; font-size: 11px; color: #39ff14; text-align: left; max-height: 100px; overflow-y: auto; border: 1px solid #111a2e; }
     </style>
 </head>
 <body>
 
-    <h1>G69 Monitor</h1>
-    <button class="btn" id="connect">CONNECT WATCH</button>
-    <button class="btn btn-green" id="exportBtn" style="display:none;">PREPARE HEALTH FILE</button>
+    <h2 style="margin-bottom: 5px; color: #f0f4f8;">G69 Absolute Control</h2>
+    <p style="color:#6b7c96; font-size:12px; margin:0 0 15px 0;">Continuous Biosensor Capture System</p>
+    
+    <button class="btn" id="connect">ESTABLISH LIVE STREAM</button>
+    <button class="btn btn-green" id="exportBtn" style="display:none;">COMPILE HEALTH FILE</button>
 
     <div class="grid">
-        <div class="card"><div>Skin Temp</div><div id="temp" class="val">--°C</div></div>
-        <div class="card"><div>HRV</div><div id="hrv" class="val">--ms</div></div>
+        <div class="card">
+            <div class="label">Skin Temp</div>
+            <div id="temp" class="val">--<span class="unit">°C</span></div>
+        </div>
+        <div class="card">
+            <div class="label">HRV</div>
+            <div id="hrv" class="val">--<span class="unit">ms</span></div>
+        </div>
+        <div class="card">
+            <div class="label">Heart Rate</div>
+            <div id="hr" class="val">--<span class="unit">bpm</span></div>
+        </div>
+        <div class="card">
+            <div class="label">Blood Oxygen</div>
+            <div id="spo2" class="val">--<span class="unit">%</span></div>
+        </div>
+        <div class="card card-full">
+            <div class="label">Active Steps</div>
+            <div id="steps" class="val">--<span class="unit">steps</span></div>
+        </div>
+        <div class="card card-full">
+            <div class="label">Tracker Charge</div>
+            <div id="battery" class="val" style="color: #ffcc00;">--<span class="unit">%</span></div>
+        </div>
     </div>
 
-    <h3>Console Log</h3>
-    <div id="log" class="log">Ready to connect...</div>
+    <div id="log" class="log">System initialized. Awaiting connection...</div>
 
 <script>
     const logDiv = document.getElementById('log');
-    let finalTemp = 0;
-    let finalHrv = 0;
+    let keepAliveInterval = null;
+
+    // Unified health matrix values (Minus Blood Pressure)
+    let metrics = { temp: 0, hrv: 0, hr: 0, spo2: 0, steps: 0 };
 
     function log(msg) { logDiv.innerHTML += '<br>> ' + msg; logDiv.scrollTop = logDiv.scrollHeight; }
 
     document.getElementById('connect').addEventListener('click', async () => {
         try {
-            log("Opening Bluetooth scanner...");
+            log("Opening target scanner window...");
             const device = await navigator.bluetooth.requestDevice({
                 acceptAllDevices: true,
                 optionalServices: ['0000180d', '0000180f', '0000fff0-0000-1000-8000-00805f9b34fb']
             });
             
-            log("Connecting to: " + device.name);
+            log("Handshaking with: " + device.name);
             const server = await device.gatt.connect();
-            log("Connected! Fetching sensor packets...");
+            log("Secure pipeline bound.");
 
-            // Look for generic health service characteristics
             const service = await server.getPrimaryService('0000fff0-0000-1000-8000-00805f9b34fb');
             const characteristic = await service.getCharacteristic('0000fff1-0000-1000-8000-00805f9b34fb');
             
             await characteristic.startNotifications();
-            log("Listening to stream matrix...");
+            log("Subscribed to the raw stream matrix. Overriding watch sleep interval...");
 
+            // FORCE CONSTANT TRACKING MODE: Sends a command pulse every 3 seconds
+            keepAliveInterval = setInterval(async () => {
+                try {
+                    const triggerCommand = new Uint8Array([0xAB, 0x0A, 0x00, 0x00, 0x00, 0x00]);
+                    await characteristic.writeValue(triggerCommand);
+                } catch(e) { /* Catch dropped connection ticks gracefully */ }
+            }, 3000);
+
+            // Comprehensive decoder for the white-label custom metrics packet
             characteristic.addEventListener('characteristicvaluechanged', (event) => {
                 let data = event.target.value;
-                
-                // Parse standard byte arrays for white-label health chips
-                if (data.byteLength >= 4) {
+                log(`Packet caught: ${data.byteLength} bytes payload.`);
+
+                if (data.byteLength >= 10) {
                     let rawTemp = data.getUint16(0, true) / 10;
                     let rawHrv = data.getUint8(2);
+                    let rawHr = data.getUint8(3);
+                    let rawSpO2 = data.getUint8(4);
+                    let rawSteps = data.getUint32(7, true); // Typical byte-index placement for pedometer tracking
 
-                    if (rawTemp > 30 && rawTemp < 43) {
-                        finalTemp = rawTemp.toFixed(1);
-                        document.getElementById('temp').innerText = finalTemp + "°C";
+                    // Validate and paint Metrics onto the dashboard layout
+                    if (rawTemp > 30 && rawTemp < 44) {
+                        metrics.temp = rawTemp.toFixed(1);
+                        document.getElementById('temp').innerHTML = metrics.temp + '<span class="unit">°C</span>';
                     }
-                    if (rawHrv > 10 && rawHrv < 200) {
-                        finalHrv = rawHrv;
-                        document.getElementById('hrv').innerText = finalHrv + "ms";
+                    if (rawHrv > 5 && rawHrv < 250) {
+                        metrics.hrv = rawHrv;
+                        document.getElementById('hrv').innerHTML = metrics.hrv + '<span class="unit">ms</span>';
                     }
-                    
-                    if(finalTemp > 0 || finalHrv > 0) {
-                        document.getElementById('exportBtn').style.display = 'block';
+                    if (rawHr > 40 && rawHr < 220) {
+                        metrics.hr = rawHr;
+                        document.getElementById('hr').innerHTML = metrics.hr + '<span class="unit">bpm</span>';
                     }
+                    if (rawSpO2 >= 70 && rawSpO2 <= 100) {
+                        metrics.spo2 = rawSpO2;
+                        document.getElementById('spo2').innerHTML = metrics.spo2 + '<span class="unit">%</span>';
+                    }
+                    if (rawSteps >= 0 && rawSteps < 100000) {
+                        metrics.steps = rawSteps;
+                        document.getElementById('steps').innerHTML = metrics.steps + '<span class="unit">steps</span>';
+                    }
+
+                    document.getElementById('exportBtn').style.display = 'block';
                 }
             });
+
+            // Simultaneously track battery level asynchronously
+            try {
+                const batSvc = await server.getPrimaryService('0000180f');
+                const batChr = await batSvc.getCharacteristic('00002a19');
+                const batVal = await batChr.readValue();
+                document.getElementById('battery').innerHTML = batVal.getUint8(0) + '<span class="unit">%</span>';
+            } catch(bErr) { log("Battery polling bypassed."); }
             
-        } catch(e) { log("Error: " + e.message); }
+        } catch(e) { 
+            log("Error occurred: " + e.message); 
+            if(keepAliveInterval) clearInterval(keepAliveInterval);
+        }
     });
 
-    // Generates the file that Apple Shortcuts reads automatically
+    // Compiles all remaining fields into an array line for your Apple Shortcuts system
     document.getElementById('exportBtn').addEventListener('click', () => {
-        const dataContent = `${finalTemp},${finalHrv}`;
+        const dataContent = `${metrics.temp},${metrics.hrv},${metrics.hr},${metrics.spo2},${metrics.steps}`;
         const blob = new Blob([dataContent], { type: 'text/plain' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -90,7 +151,7 @@
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        log("File saved! Ready for Apple Shortcuts automation.");
+        log("Comprehensive payload saved into folder!");
     });
 </script>
 </body>
