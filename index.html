@@ -7,7 +7,7 @@
     <style>
         * { box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
             background: #0a0d16;
             color: #fff;
             text-align: center;
@@ -15,7 +15,7 @@
             margin: 0;
             min-height: 100vh;
         }
-        h2 { margin: 0 0 4px 0; font-size: 22px; color: #f0f4ff; letter-spacing: 0.3px; }
+        h2 { margin: 0 0 4px 0; font-size: 22px; color: #f0f4ff; }
         .subtitle { color: #4a5568; font-size: 12px; margin: 0 0 18px 0; }
 
         .btn {
@@ -36,51 +36,28 @@
         }
         .btn:active { transform: scale(0.97); }
         .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-        .btn-green { background: #16a34a; }
-        .btn-red   { background: #dc2626; }
-        .btn-amber { background: #d97706; }
+        .btn-green  { background: #16a34a; }
+        .btn-red    { background: #dc2626; }
+        .btn-amber  { background: #d97706; }
 
         .status-bar {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            margin: 0 0 14px 0;
-            font-size: 13px;
-            color: #6b7280;
+            display: flex; align-items: center; justify-content: center;
+            gap: 8px; margin: 0 0 14px 0; font-size: 13px; color: #6b7280;
         }
-        .dot {
-            width: 9px; height: 9px;
-            border-radius: 50%;
-            background: #374151;
-            transition: background 0.4s;
-        }
-        .dot.live { background: #22c55e; box-shadow: 0 0 8px #22c55e88; animation: pulse 1.6s infinite; }
+        .dot { width: 9px; height: 9px; border-radius: 50%; background: #374151; transition: background 0.4s; }
+        .dot.live  { background: #22c55e; box-shadow: 0 0 8px #22c55e88; animation: pulse 1.6s infinite; }
         .dot.error { background: #ef4444; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.45} }
 
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
         .card {
-            background: #141929;
-            padding: 14px 12px 12px;
-            border-radius: 16px;
-            border: 1px solid #1e2a45;
-            position: relative;
-            overflow: hidden;
+            background: #141929; padding: 14px 12px 12px;
+            border-radius: 16px; border: 1px solid #1e2a45;
+            position: relative; overflow: hidden;
         }
         .card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 2px;
-            background: var(--accent, #2563eb);
-            opacity: 0;
-            transition: opacity 0.4s;
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: var(--accent, #2563eb); opacity: 0; transition: opacity 0.4s;
         }
         .card.active::before { opacity: 1; }
         .card-full { grid-column: span 2; }
@@ -91,110 +68,55 @@
         .unit { font-size: 13px; color: #4b5563; margin-left: 2px; font-weight: 400; }
         .val.stale { color: #374151; }
 
-        /* Log */
-        .log-wrap { margin-top: 12px; }
-        .log-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 6px;
-            font-size: 11px;
-            color: #4b5563;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-        }
-        .log-clear { background: none; border: none; color: #4b5563; font-size: 11px; cursor: pointer; padding: 2px 6px; }
-        .log {
-            background: #050810;
-            padding: 10px 12px;
-            border-radius: 12px;
-            font-family: 'Courier New', monospace;
-            font-size: 10.5px;
-            color: #22c55e;
-            text-align: left;
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #111827;
-            line-height: 1.6;
-            word-break: break-all;
-        }
-
-        /* Raw packet section */
-        .raw-section { margin-top: 10px; display: none; }
-        .raw-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; text-align: left; }
-        .raw-box {
-            background: #050810;
-            border: 1px solid #1e2a45;
-            border-radius: 10px;
-            padding: 10px 12px;
-            font-family: monospace;
-            font-size: 11px;
-            color: #a78bfa;
-            text-align: left;
-            word-break: break-all;
-        }
-
         .tabs { display: flex; gap: 6px; margin: 12px 0 8px; }
         .tab {
-            flex: 1;
-            padding: 8px;
-            border-radius: 10px;
-            border: 1px solid #1e2a45;
-            background: none;
-            color: #6b7280;
-            font-size: 11px;
-            cursor: pointer;
-            font-weight: 600;
-            letter-spacing: 0.5px;
+            flex: 1; padding: 8px; border-radius: 10px;
+            border: 1px solid #1e2a45; background: none;
+            color: #6b7280; font-size: 11px; cursor: pointer;
+            font-weight: 600; letter-spacing: 0.5px;
         }
         .tab.active { background: #1e2a45; color: #e2e8f0; }
-
         .panel { display: none; }
         .panel.active { display: block; }
 
-        .hint {
-            background: #1a1f2e;
-            border: 1px solid #2d3748;
-            border-radius: 10px;
-            padding: 10px 12px;
-            font-size: 11px;
-            color: #9ca3af;
-            text-align: left;
-            margin-top: 10px;
-            line-height: 1.7;
+        .log-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 6px; font-size: 11px; color: #4b5563;
+            text-transform: uppercase; letter-spacing: 0.8px;
         }
-        .hint b { color: #e2e8f0; }
+        .log-clear { background: none; border: none; color: #4b5563; font-size: 11px; cursor: pointer; padding: 2px 6px; }
+        .log {
+            background: #050810; padding: 10px 12px; border-radius: 12px;
+            font-family: 'Courier New', monospace; font-size: 10.5px;
+            color: #22c55e; text-align: left; max-height: 220px;
+            overflow-y: auto; border: 1px solid #111827;
+            line-height: 1.6; word-break: break-all;
+        }
 
-        /* Offset tuner */
-        .tuner { margin-top: 10px; }
-        .tuner-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 8px;
-            font-size: 12px;
-            color: #9ca3af;
+        .raw-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; text-align: left; }
+        .raw-box {
+            background: #050810; border: 1px solid #1e2a45; border-radius: 10px;
+            padding: 10px 12px; font-family: monospace; font-size: 11px;
+            color: #a78bfa; text-align: left; word-break: break-all;
         }
+
+        .tuner { margin-top: 10px; }
+        .tuner-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 12px; color: #9ca3af; }
         .tuner-row label { width: 90px; text-align: right; flex-shrink: 0; }
         .tuner-row input[type=number] {
-            width: 56px;
-            background: #0f1624;
-            border: 1px solid #1e2a45;
-            border-radius: 8px;
-            color: #e2e8f0;
-            padding: 5px 8px;
-            font-size: 12px;
-            text-align: center;
+            width: 56px; background: #0f1624; border: 1px solid #1e2a45;
+            border-radius: 8px; color: #e2e8f0; padding: 5px 8px; font-size: 12px; text-align: center;
         }
         .tuner-row select {
-            flex: 1;
-            background: #0f1624;
-            border: 1px solid #1e2a45;
-            border-radius: 8px;
-            color: #e2e8f0;
-            padding: 5px 8px;
-            font-size: 12px;
+            flex: 1; background: #0f1624; border: 1px solid #1e2a45;
+            border-radius: 8px; color: #e2e8f0; padding: 5px 8px; font-size: 12px;
         }
+        .hint {
+            background: #1a1f2e; border: 1px solid #2d3748; border-radius: 10px;
+            padding: 10px 12px; font-size: 11px; color: #9ca3af;
+            text-align: left; margin-top: 10px; line-height: 1.7;
+        }
+        .hint b { color: #e2e8f0; }
     </style>
 </head>
 <body>
@@ -207,9 +129,9 @@
     <span id="statusText">Not connected</span>
 </div>
 
-<button class="btn" id="connectBtn">CONNECT WATCH</button>
-<button class="btn btn-red" id="disconnectBtn" style="display:none;">DISCONNECT</button>
-<button class="btn btn-green" id="exportBtn" style="display:none;">EXPORT CSV FOR APPLE HEALTH</button>
+<button class="btn"       id="connectBtn">CONNECT WATCH</button>
+<button class="btn btn-red"   id="disconnectBtn" style="display:none;">DISCONNECT</button>
+<button class="btn btn-green" id="exportBtn"     style="display:none;">EXPORT CSV FOR APPLE HEALTH</button>
 
 <div class="grid">
     <div class="card" id="card-temp" style="--accent:#06b6d4">
@@ -234,7 +156,6 @@
     </div>
 </div>
 
-<!-- Tabs -->
 <div class="tabs">
     <button class="tab active" onclick="switchTab('log')">LOG</button>
     <button class="tab" onclick="switchTab('raw')">RAW PACKETS</button>
@@ -246,22 +167,20 @@
         <span>Console</span>
         <button class="log-clear" onclick="clearLog()">Clear</button>
     </div>
-    <div id="log" class="log">Ready. Press CONNECT WATCH above.<br></div>
+    <div id="log" class="log">Ready. Press CONNECT WATCH above.</div>
 </div>
 
 <div id="tab-raw" class="panel">
     <div class="raw-label">Last raw packet (hex):</div>
     <div id="rawBox" class="raw-box">No packets yet</div>
-    <div class="raw-label" style="margin-top:8px;">Packet count: <span id="pktCount">0</span></div>
+    <div class="raw-label" style="margin-top:8px;">Channel: <span id="chanLabel">—</span> &nbsp;|&nbsp; Packets: <span id="pktCount">0</span></div>
 </div>
 
 <div id="tab-tune" class="panel">
     <div class="hint">
-        <b>How to use:</b> Connect your watch, then check the RAW PACKETS tab to see actual bytes. 
-        Use these offset controls to tell the app where each value lives in the packet. 
-        Your working version got Temp at bytes 0–1 and HRV at byte 2 — those are pre-filled.
+        <b>Adjust byte offsets</b> if values look wrong. Your original working version used Temp at offset 0 (UInt16 LE ÷10) and HRV at offset 2 (UInt8). The watch sends data on Nordic UART TX now.
     </div>
-    <div class="tuner" id="tuner">
+    <div class="tuner">
         <div class="tuner-row">
             <label>Temp offset:</label>
             <input type="number" id="off-temp" value="0" min="0" max="30">
@@ -298,30 +217,36 @@
             </select>
         </div>
     </div>
-    <div class="hint" style="margin-top:8px;">
-        <b>Second service (0xF728):</b> Your scan found a second service with chars 0xF72A [W] and 0xF729 [N]. 
-        If no data comes through on the main service, try the <b>Alt Service</b> button below.
-    </div>
-</div>
-
-<button class="btn btn-amber" id="altServiceBtn" style="display:none; margin-top:4px;">TRY ALT SERVICE (0xF728)</button>
-
-<div class="hint" style="margin-top:10px;">
-    <b>Bluefy note:</b> Make sure Bluefy has Bluetooth permission and your watch (G69_E702) is discoverable. 
-    After exporting the CSV, open the <b>Shortcuts</b> app to import into Apple Health.
 </div>
 
 <script>
-// ─── State ────────────────────────────────────────────────────────────────────
-let device = null;
-let server = null;
-let keepAlive = null;
+// ── Real UUIDs from BLE scanner ──────────────────────────────────────────────
+// Nordic UART (most likely data channel)
+const NORDIC_SVC  = '6e40fff0-b5a3-f393-e0a9-e50e24dcca9e';
+const NORDIC_RX   = '6e400002-b5a3-f393-e0a9-e50e24dcca9e'; // write
+const NORDIC_TX   = '6e400003-b5a3-f393-e0a9-e50e24dcca9e'; // notify
+
+// Custom service 1 (DE5BF728...)
+const CUSTOM1_SVC = 'de5bf728-d711-4e47-af26-65e3012a5dc7';
+const CUSTOM1_W   = 'de5bf72a-d711-4e47-af26-65e3012a5dc7'; // write
+const CUSTOM1_N   = 'de5bf729-d711-4e47-af26-65e3012a5dc7'; // notify
+
+// Custom service 2 (FEE7) — short UUIDs work for getPrimaryService
+const FEE7_SVC    = 0xfee7;
+const FEA1_NOTIFY = 0xfea1; // notify
+const FEA2_WRITE  = 0xfea2; // write
+
+// Battery
+const BAT_SVC     = 0x180f;
+const BAT_CHR     = 0x2a19;
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let device = null, server = null, keepAlive = null;
 let pktCount = 0;
-let usingAlt = false;
 let metrics = { temp: null, hrv: null, hr: null, spo2: null };
 let dataLog = [];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ── DOM helpers ───────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 const logDiv = $('log');
 
@@ -332,35 +257,32 @@ function log(msg, color) {
     logDiv.appendChild(line);
     logDiv.scrollTop = logDiv.scrollHeight;
 }
-
 function clearLog() { while (logDiv.firstChild) logDiv.removeChild(logDiv.firstChild); }
 
 function setStatus(text, state) {
     $('statusText').textContent = text;
-    const dot = $('dot');
-    dot.className = 'dot ' + (state || '');
+    $('dot').className = 'dot ' + (state || '');
 }
-
-function markCard(id, active) {
-    const card = document.getElementById('card-' + id);
-    if (card) card.classList.toggle('active', active);
+function markCard(id) {
+    const c = document.getElementById('card-' + id);
+    if (c) c.classList.add('active');
 }
-
 function setVal(id, html) {
     const el = $(id);
     el.innerHTML = html;
     el.classList.remove('stale');
-    markCard(id, true);
+    markCard(id);
+}
+function switchTab(name) {
+    ['log','raw','tune'].forEach(t => {
+        $('tab-' + t).classList.toggle('active', t === name);
+    });
+    document.querySelectorAll('.tab').forEach((btn, i) => {
+        btn.classList.toggle('active', ['log','raw','tune'][i] === name);
+    });
 }
 
-function toHex(dataView) {
-    const bytes = [];
-    for (let i = 0; i < dataView.byteLength; i++) {
-        bytes.push(dataView.getUint8(i).toString(16).padStart(2, '0').toUpperCase());
-    }
-    return bytes.join(' ');
-}
-
+// ── Packet parser ─────────────────────────────────────────────────────────────
 function readVal(dv, offset, type) {
     if (offset >= dv.byteLength) return null;
     switch(type) {
@@ -372,54 +294,43 @@ function readVal(dv, offset, type) {
     }
 }
 
-function switchTab(name) {
-    ['log','raw','tune'].forEach(t => {
-        $('tab-' + t).classList.toggle('active', t === name);
-    });
-    document.querySelectorAll('.tab').forEach((btn, i) => {
-        btn.classList.toggle('active', ['log','raw','tune'][i] === name);
-    });
-}
-
-// ─── Packet Parser ────────────────────────────────────────────────────────────
-function parsePacket(data) {
+function parsePacket(data, channel) {
     pktCount++;
     $('pktCount').textContent = pktCount;
-    $('rawBox').textContent = toHex(data) + '  (' + data.byteLength + ' bytes)';
+    $('chanLabel').textContent = channel;
 
-    const offTemp  = parseInt($('off-temp').value);
-    const offHrv   = parseInt($('off-hrv').value);
-    const offHr    = parseInt($('off-hr').value);
-    const offSpo2  = parseInt($('off-spo2').value);
-    const typeTemp  = $('type-temp').value;
-    const typeHrv   = $('type-hrv').value;
-    const typeHr    = $('type-hr').value;
-    const typeSpo2  = $('type-spo2').value;
+    // Show hex
+    const bytes = [];
+    for (let i = 0; i < data.byteLength; i++)
+        bytes.push(data.getUint8(i).toString(16).padStart(2,'0').toUpperCase());
+    $('rawBox').textContent = bytes.join(' ') + '  (' + data.byteLength + ' bytes)';
+
+    const offTemp = parseInt($('off-temp').value);
+    const offHrv  = parseInt($('off-hrv').value);
+    const offHr   = parseInt($('off-hr').value);
+    const offSpo2 = parseInt($('off-spo2').value);
 
     let updated = false;
 
-    const rawTemp = readVal(data, offTemp, typeTemp);
+    const rawTemp = readVal(data, offTemp, $('type-temp').value);
     if (rawTemp !== null && rawTemp > 30 && rawTemp < 45) {
         metrics.temp = rawTemp.toFixed(1);
         setVal('temp', metrics.temp + '<span class="unit">°C</span>');
         updated = true;
     }
-
-    const rawHrv = readVal(data, offHrv, typeHrv);
+    const rawHrv = readVal(data, offHrv, $('type-hrv').value);
     if (rawHrv !== null && rawHrv > 5 && rawHrv < 250) {
         metrics.hrv = Math.round(rawHrv);
         setVal('hrv', metrics.hrv + '<span class="unit">ms</span>');
         updated = true;
     }
-
-    const rawHr = readVal(data, offHr, typeHr);
+    const rawHr = readVal(data, offHr, $('type-hr').value);
     if (rawHr !== null && rawHr > 40 && rawHr < 220) {
         metrics.hr = Math.round(rawHr);
         setVal('hr', metrics.hr + '<span class="unit">bpm</span>');
         updated = true;
     }
-
-    const rawSpo2 = readVal(data, offSpo2, typeSpo2);
+    const rawSpo2 = readVal(data, offSpo2, $('type-spo2').value);
     if (rawSpo2 !== null && rawSpo2 >= 70 && rawSpo2 <= 100) {
         metrics.spo2 = Math.round(rawSpo2);
         setVal('spo2', metrics.spo2 + '<span class="unit">%</span>');
@@ -432,222 +343,161 @@ function parsePacket(data) {
     }
 }
 
-// ─── BLE Connection ───────────────────────────────────────────────────────────
+// ── Hook a notify characteristic ─────────────────────────────────────────────
+async function hookNotify(notifyChar, writeChar, label, triggerCmds) {
+    log('Starting notifications on ' + label + '…');
+    await notifyChar.startNotifications();
+    notifyChar.addEventListener('characteristicvaluechanged', e => {
+        parsePacket(e.target.value, label);
+    });
+    log('✓ Notify active on ' + label, '#22c55e');
+
+    if (writeChar && triggerCmds) {
+        log('Sending trigger commands…');
+        for (const cmd of triggerCmds) {
+            try {
+                await writeChar.writeValue(cmd);
+                const hex = Array.from(cmd).map(b=>b.toString(16).padStart(2,'0')).join(' ');
+                log('  Sent: ' + hex);
+                await new Promise(r => setTimeout(r, 250));
+            } catch(e) { /* try next */ }
+        }
+        // Keep-alive
+        keepAlive = setInterval(async () => {
+            try { await writeChar.writeValue(triggerCmds[0]); } catch(e) {}
+        }, 2000);
+    }
+}
+
+// ── Main connect flow ─────────────────────────────────────────────────────────
 async function connectWatch() {
     $('connectBtn').disabled = true;
     setStatus('Scanning…', '');
     log('Opening BLE scanner…');
 
     try {
-        // Bluefy requires full 128-bit UUIDs — short 16-bit aliases like 0xfff0
-        // must be expanded to '0000fff0-0000-1000-8000-00805f9b34fb' format.
-        // String names like 'generic_access' cause "payload could not be parsed" errors.
         device = await navigator.bluetooth.requestDevice({
             acceptAllDevices: true,
             optionalServices: [
-                '0000fff0-0000-1000-8000-00805f9b34fb',  // main data service
-                '0000f728-0000-1000-8000-00805f9b34fb',  // alt data service (found in scan)
-                '0000180f-0000-1000-8000-00805f9b34fb',  // battery service
-                '0000180d-0000-1000-8000-00805f9b34fb',  // heart rate service (standard)
+                NORDIC_SVC,   // Nordic UART
+                CUSTOM1_SVC,  // Custom service 1
+                FEE7_SVC,     // Custom service 2 (short OK here)
+                BAT_SVC,
+                0x180a,       // Device info
             ]
         });
 
         device.addEventListener('gattserverdisconnected', onDisconnected);
-        log('Found: ' + (device.name || 'unnamed device'));
+        log('Found: ' + (device.name || 'unnamed'));
         setStatus('Connecting…', '');
 
         server = await device.gatt.connect();
-        log('GATT connected. Reading services…');
+        log('GATT connected.');
+        await new Promise(r => setTimeout(r, 600));
 
-        // Small delay for hardware
-        await new Promise(r => setTimeout(r, 800));
+        // ── Try all three data services in order ──────────────────────────
 
-        await tryPrimaryService();
+        // 1. Nordic UART — most likely for health data
+        let gotData = false;
+        try {
+            log('Trying Nordic UART service…');
+            const svc = await server.getPrimaryService(NORDIC_SVC);
+            const rx  = await svc.getCharacteristic(NORDIC_RX);
+            const tx  = await svc.getCharacteristic(NORDIC_TX);
+            await hookNotify(tx, rx, 'Nordic UART', [
+                new Uint8Array([0xAB, 0x00, 0x04, 0xFF, 0x31, 0x80, 0x01]),
+                new Uint8Array([0x01, 0x10, 0x00]),
+                new Uint8Array([0x01]),
+            ]);
+            gotData = true;
+        } catch(e) { log('Nordic UART failed: ' + e.message, '#fb923c'); }
+
+        // 2. Custom service DE5BF728
+        try {
+            log('Trying Custom service DE5BF728…');
+            const svc = await server.getPrimaryService(CUSTOM1_SVC);
+            const w   = await svc.getCharacteristic(CUSTOM1_W);
+            const n   = await svc.getCharacteristic(CUSTOM1_N);
+            await hookNotify(n, w, 'DE5BF728', [
+                new Uint8Array([0xAB, 0x00, 0x04, 0xFF, 0x31, 0x80, 0x01]),
+                new Uint8Array([0x01]),
+            ]);
+            gotData = true;
+        } catch(e) { log('DE5BF728 failed: ' + e.message, '#fb923c'); }
+
+        // 3. Custom service FEE7
+        try {
+            log('Trying Custom service FEE7…');
+            const svc = await server.getPrimaryService(FEE7_SVC);
+            const n   = await svc.getCharacteristic(FEA1_NOTIFY);
+            const w   = await svc.getCharacteristic(FEA2_WRITE);
+            await hookNotify(n, w, 'FEE7', [
+                new Uint8Array([0xAB, 0x00, 0x04, 0xFF, 0x31, 0x80, 0x01]),
+                new Uint8Array([0x01]),
+            ]);
+            gotData = true;
+        } catch(e) { log('FEE7 failed: ' + e.message, '#fb923c'); }
+
+        if (!gotData) {
+            log('⚠ Could not hook any service — check RAW PACKETS tab', '#f87171');
+        } else {
+            log('All available channels hooked. Waiting for packets…', '#22c55e');
+        }
+
+        // Battery (separate, non-blocking)
+        try {
+            const bsvc = await server.getPrimaryService(BAT_SVC);
+            const bchr = await bsvc.getCharacteristic(BAT_CHR);
+            const bval = await bchr.readValue();
+            const pct  = bval.getUint8(0);
+            $('battery').innerHTML = pct + '<span class="unit">%</span>';
+            $('battery').classList.remove('stale');
+            markCard('bat');
+            log('Battery: ' + pct + '%', '#22c55e');
+        } catch(e) { log('Battery: not available'); }
+
+        // UI
+        setStatus('Connected — waiting for data…', 'live');
+        $('connectBtn').style.display = 'none';
+        $('disconnectBtn').style.display = 'block';
 
     } catch(e) {
-        // User cancelled picker or real error — always re-enable the button
-        if (e.name === 'NotFoundError' || e.message === 'User cancelled') {
-            log('Scan cancelled.', '#fb923c');
-            setStatus('Not connected', '');
-        } else {
-            log('Error: ' + (e.message || String(e)), '#f87171');
-            setStatus('Connection failed', 'error');
-        }
+        const cancelled = e.name === 'NotFoundError' || (e.message||'').toLowerCase().includes('cancel');
+        log(cancelled ? 'Scan cancelled.' : 'Error: ' + e.message, cancelled ? '#fb923c' : '#f87171');
+        setStatus(cancelled ? 'Not connected' : 'Failed', cancelled ? '' : 'error');
         $('connectBtn').disabled = false;
     }
-}
-
-async function tryPrimaryService() {
-    // Try main data service 0xFFF0 first
-    try {
-        log('Looking for service 0xFFF0…');
-        const svc = await server.getPrimaryService(0xfff0);
-        log('Found 0xFFF0. Getting characteristics…');
-        const chars = await svc.getCharacteristics();
-        log('Found ' + chars.length + ' characteristics:');
-        chars.forEach(c => log('  0x' + c.uuid.substring(4,8).toUpperCase() + ' props: ' + Object.keys(c.properties).filter(k=>c.properties[k]).join(', ')));
-
-        // Find notify and write characteristics
-        const notifyChar = chars.find(c => c.properties.notify);
-        const writeChar  = chars.find(c => c.properties.write || c.properties.writeWithoutResponse);
-
-        if (!notifyChar) {
-            log('No notify char on 0xFFF0, trying alt service…', '#fb923c');
-            await tryAltService();
-            return;
-        }
-
-        await hookCharacteristic(notifyChar, writeChar, '0xFFF0');
-
-    } catch(e) {
-        log('0xFFF0 not available: ' + e.message, '#fb923c');
-        log('Trying alt service 0xF728…');
-        await tryAltService();
-    }
-}
-
-async function tryAltService() {
-    usingAlt = true;
-    try {
-        log('Looking for service 0xF728…');
-        const svc = await server.getPrimaryService(0xf728);
-        log('Found 0xF728. Getting characteristics…');
-        const chars = await svc.getCharacteristics();
-        log('Found ' + chars.length + ' characteristics:');
-        chars.forEach(c => log('  0x' + c.uuid.substring(4,8).toUpperCase() + ' props: ' + Object.keys(c.properties).filter(k=>c.properties[k]).join(', ')));
-
-        const notifyChar = chars.find(c => c.properties.notify);
-        const writeChar  = chars.find(c => c.properties.write || c.properties.writeWithoutResponse);
-
-        if (!notifyChar) {
-            log('No notify char found on alt service either.', '#f87171');
-            log('Check RAW PACKETS tab — the watch may need a different trigger.');
-            onConnectedUI();
-            return;
-        }
-
-        await hookCharacteristic(notifyChar, writeChar, '0xF728');
-
-    } catch(e) {
-        log('Alt service also failed: ' + e.message, '#f87171');
-        log('Watch is connected but data service not found.', '#fb923c');
-        onConnectedUI();
-    }
-}
-
-async function hookCharacteristic(notifyChar, writeChar, svcName) {
-    log('Starting notifications on ' + svcName + '…');
-    await notifyChar.startNotifications();
-    notifyChar.addEventListener('characteristicvaluechanged', e => {
-        parsePacket(e.target.value);
-    });
-    log('Notify active ✓', '#22c55e');
-
-    if (writeChar) {
-        log('Write channel found. Sending data request commands…');
-
-        // Try multiple known trigger patterns for G69-type watches
-        const triggers = [
-            new Uint8Array([0xAB, 0x00, 0x04, 0xFF, 0x31, 0x80, 0x01]),  // All data request
-            new Uint8Array([0xAB, 0x00, 0x04, 0xFF, 0x31, 0x80, 0x02]),  // Alternate
-            new Uint8Array([0xEE, 0x01, 0x00]),                             // Generic start
-            new Uint8Array([0x01, 0x00]),                                   // Minimal trigger
-        ];
-
-        for (const cmd of triggers) {
-            try {
-                await writeChar.writeValue(cmd);
-                log('Sent trigger: ' + Array.from(cmd).map(b=>b.toString(16).padStart(2,'0')).join(' '));
-                await new Promise(r => setTimeout(r, 300));
-            } catch(e) { /* try next */ }
-        }
-
-        // Keep-alive every 2s
-        keepAlive = setInterval(async () => {
-            try {
-                // Use the simplest trigger for keep-alive
-                await writeChar.writeValue(new Uint8Array([0xAB, 0x00, 0x04, 0xFF, 0x31, 0x80, 0x01]));
-            } catch(e) {}
-        }, 2000);
-    } else {
-        log('No write char — watch will push data on its own schedule.', '#fb923c');
-    }
-
-    // Check battery separately
-    checkBattery();
-    onConnectedUI();
-}
-
-async function checkBattery() {
-    try {
-        const batSvc = await server.getPrimaryService(0x180f);
-        const batChr = await batSvc.getCharacteristic(0x2a19);
-        const val = await batChr.readValue();
-        const pct = val.getUint8(0);
-        $('battery').innerHTML = pct + '<span class="unit">%</span>';
-        $('battery').classList.remove('stale');
-        markCard('bat', true);
-        log('Battery: ' + pct + '%', '#22c55e');
-    } catch(e) {
-        log('Battery service not available.');
-    }
-}
-
-function onConnectedUI() {
-    setStatus('Connected — waiting for data…', 'live');
-    $('connectBtn').style.display = 'none';
-    $('disconnectBtn').style.display = 'block';
-    $('altServiceBtn').style.display = usingAlt ? 'none' : 'block';
 }
 
 function onDisconnected() {
     log('Watch disconnected.', '#f87171');
     setStatus('Disconnected', 'error');
-    cleanup();
+    if (keepAlive) { clearInterval(keepAlive); keepAlive = null; }
     $('connectBtn').disabled = false;
     $('connectBtn').style.display = 'block';
     $('disconnectBtn').style.display = 'none';
 }
 
-function cleanup() {
-    if (keepAlive) { clearInterval(keepAlive); keepAlive = null; }
-}
-
 $('connectBtn').addEventListener('click', connectWatch);
 
 $('disconnectBtn').addEventListener('click', () => {
-    cleanup();
-    if (device && device.gatt.connected) {
-        device.gatt.disconnect();
-    }
+    if (keepAlive) { clearInterval(keepAlive); keepAlive = null; }
+    if (device && device.gatt.connected) device.gatt.disconnect();
     onDisconnected();
 });
 
-$('altServiceBtn').addEventListener('click', async () => {
-    log('Manually switching to alt service 0xF728…');
-    await tryAltService();
-});
-
-// ─── Export ───────────────────────────────────────────────────────────────────
 $('exportBtn').addEventListener('click', () => {
-    if (dataLog.length === 0) { log('No data to export yet.'); return; }
-
+    if (!dataLog.length) { log('No data yet.'); return; }
     let csv = 'Timestamp,Temp(C),HRV(ms),HR(bpm),SpO2(%)\n';
-    dataLog.forEach(row => {
-        csv += `${row.time},${row.temp||''},${row.hrv||''},${row.hr||''},${row.spo2||''}\n`;
+    dataLog.forEach(r => {
+        csv += r.time+','+( r.temp||'')+','+(r.hrv||'')+','+(r.hr||'')+','+(r.spo2||'')+'\n';
     });
-
-    const blob = new Blob([csv], { type: 'text/csv' });
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
+    a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
     a.download = 'G69_health_' + new Date().toISOString().slice(0,10) + '.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    log('Exported ' + dataLog.length + ' row(s) → open in Shortcuts to send to Apple Health', '#22c55e');
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    log('Exported ' + dataLog.length + ' rows → import via Shortcuts into Apple Health', '#22c55e');
 });
 </script>
 </body>
 </html>
-
-
