@@ -6,45 +6,269 @@
     <title>G69 Dashboard</title>
     <style>
         * { box-sizing: border-box; }
-        body { font-family: -apple-system, sans-serif; background: #0a0d16; color: #fff; text-align: center; padding: 16px; margin: 0; }
-        h2 { margin: 0 0 4px 0; font-size: 22px; color: #f0f4ff; }
-        .subtitle { color: #4a5568; font-size: 12px; margin: 0 0 18px 0; }
-        .btn { background: #2563eb; color: white; border: none; padding: 16px 24px; font-size: 15px; border-radius: 14px; cursor: pointer; font-weight: 700; width: 100%; max-width: 360px; margin: 0 auto 10px auto; display: block; letter-spacing: 0.8px; }
-        .btn:disabled { opacity: 0.45; }
-        .btn-green { background: #16a34a; }
-        .btn-red   { background: #dc2626; }
-        .status-bar { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0 0 14px 0; font-size: 13px; color: #6b7280; }
-        .dot { width: 9px; height: 9px; border-radius: 50%; background: #374151; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0a0d16;
+            color: #fff;
+            text-align: center;
+            padding: 16px;
+            margin: 0;
+            min-height: 100vh;
+        }
+        h2 { margin: 0 0 2px 0; font-size: 22px; color: #f0f4ff; }
+        .subtitle { color: #4a5568; font-size: 12px; margin: 0 0 14px 0; }
+
+        .btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 16px 24px;
+            font-size: 15px;
+            border-radius: 14px;
+            cursor: pointer;
+            font-weight: 700;
+            width: 100%;
+            max-width: 360px;
+            margin: 0 auto 10px auto;
+            display: block;
+            letter-spacing: 0.8px;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-green  { background: #16a34a; }
+        .btn-red    { background: #dc2626; }
+        .btn-amber  { background: #b45309; }
+        .btn-small  {
+            font-size: 12px;
+            padding: 10px 16px;
+            border-radius: 10px;
+            letter-spacing: 0.4px;
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin: 0 0 14px 0;
+            font-size: 13px;
+            color: #6b7280;
+        }
+        .dot {
+            width: 9px; height: 9px;
+            border-radius: 50%;
+            background: #374151;
+            flex-shrink: 0;
+            transition: background 0.3s;
+        }
         .dot.live  { background: #22c55e; box-shadow: 0 0 8px #22c55e88; animation: pulse 1.6s infinite; }
+        .dot.warn  { background: #f59e0b; }
         .dot.error { background: #ef4444; }
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.45} }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-        .card { background: #141929; padding: 14px 12px 12px; border-radius: 16px; border: 1px solid #1e2a45; position: relative; overflow: hidden; }
-        .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--accent, #2563eb); opacity: 0; transition: opacity 0.4s; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .card {
+            background: #141929;
+            padding: 14px 12px 12px;
+            border-radius: 16px;
+            border: 1px solid #1e2a45;
+            position: relative;
+            overflow: hidden;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: var(--accent, #2563eb);
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
         .card.active::before { opacity: 1; }
         .card-full { grid-column: span 2; }
-        .label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
-        .val { font-size: 28px; font-weight: 700; color: #00e5c0; line-height: 1; }
+
+        .label {
+            font-size: 11px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .val {
+            font-size: 28px;
+            font-weight: 700;
+            color: #00e5c0;
+            line-height: 1;
+        }
         .val.battery { color: #facc15; }
         .unit { font-size: 13px; color: #4b5563; margin-left: 2px; font-weight: 400; }
         .val.stale { color: #374151; }
+
+        /* Info box */
+        .infobox {
+            background: #111827;
+            border: 1px solid #1e2a45;
+            border-radius: 12px;
+            padding: 12px 14px;
+            font-size: 12px;
+            color: #9ca3af;
+            text-align: left;
+            margin-bottom: 10px;
+            line-height: 1.8;
+        }
+        .infobox b  { color: #e2e8f0; }
+        .infobox .step {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 4px;
+            align-items: flex-start;
+        }
+        .infobox .num {
+            background: #1e3a5f;
+            color: #60a5fa;
+            font-weight: 700;
+            font-size: 11px;
+            border-radius: 50%;
+            width: 20px; height: 20px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
         .tabs { display: flex; gap: 6px; margin: 12px 0 8px; }
-        .tab { flex: 1; padding: 8px; border-radius: 10px; border: 1px solid #1e2a45; background: none; color: #6b7280; font-size: 11px; cursor: pointer; font-weight: 600; }
+        .tab {
+            flex: 1;
+            padding: 8px;
+            border-radius: 10px;
+            border: 1px solid #1e2a45;
+            background: none;
+            color: #6b7280;
+            font-size: 11px;
+            cursor: pointer;
+            font-weight: 600;
+            letter-spacing: 0.4px;
+        }
         .tab.active { background: #1e2a45; color: #e2e8f0; }
+
         .panel { display: none; }
         .panel.active { display: block; }
-        .log-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 11px; color: #4b5563; text-transform: uppercase; }
-        .log-clear { background: none; border: none; color: #4b5563; font-size: 11px; cursor: pointer; }
-        .log { background: #050810; padding: 10px 12px; border-radius: 12px; font-family: 'Courier New', monospace; font-size: 10.5px; color: #22c55e; text-align: left; max-height: 220px; overflow-y: auto; border: 1px solid #111827; line-height: 1.6; word-break: break-all; }
-        .raw-label { font-size: 11px; color: #6b7280; text-transform: uppercase; margin-bottom: 4px; text-align: left; }
-        .raw-box { background: #050810; border: 1px solid #1e2a45; border-radius: 10px; padding: 10px 12px; font-family: monospace; font-size: 11px; color: #a78bfa; text-align: left; word-break: break-all; }
-        .tuner { margin-top: 10px; }
-        .tuner-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 12px; color: #9ca3af; }
-        .tuner-row label { width: 90px; text-align: right; flex-shrink: 0; }
-        .tuner-row input[type=number] { width: 56px; background: #0f1624; border: 1px solid #1e2a45; border-radius: 8px; color: #e2e8f0; padding: 5px 8px; font-size: 12px; text-align: center; }
-        .tuner-row select { flex: 1; background: #0f1624; border: 1px solid #1e2a45; border-radius: 8px; color: #e2e8f0; padding: 5px 8px; font-size: 12px; }
-        .hint { background: #1a1f2e; border: 1px solid #2d3748; border-radius: 10px; padding: 10px 12px; font-size: 11px; color: #9ca3af; text-align: left; margin-top: 10px; line-height: 1.7; }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 11px;
+            color: #4b5563;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+        .log-clear {
+            background: none;
+            border: none;
+            color: #4b5563;
+            font-size: 11px;
+            cursor: pointer;
+            padding: 2px 6px;
+        }
+        .log {
+            background: #050810;
+            padding: 10px 12px;
+            border-radius: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 10.5px;
+            color: #22c55e;
+            text-align: left;
+            max-height: 240px;
+            overflow-y: auto;
+            border: 1px solid #111827;
+            line-height: 1.65;
+            word-break: break-all;
+        }
+
+        .raw-label {
+            font-size: 11px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 4px;
+            text-align: left;
+        }
+        .raw-box {
+            background: #050810;
+            border: 1px solid #1e2a45;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            color: #a78bfa;
+            text-align: left;
+            word-break: break-all;
+            line-height: 1.6;
+            min-height: 48px;
+        }
+        .raw-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 11px;
+            color: #6b7280;
+        }
+
+        .hint {
+            background: #1a1f2e;
+            border: 1px solid #2d3748;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 11px;
+            color: #9ca3af;
+            text-align: left;
+            margin-top: 10px;
+            line-height: 1.8;
+        }
         .hint b { color: #e2e8f0; }
+
+        .tuner { margin-top: 10px; }
+        .tuner-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+            font-size: 12px;
+            color: #9ca3af;
+        }
+        .tuner-row label { width: 88px; text-align: right; flex-shrink: 0; font-size: 11px; }
+        .tuner-row input[type=number] {
+            width: 54px;
+            background: #0f1624;
+            border: 1px solid #1e2a45;
+            border-radius: 8px;
+            color: #e2e8f0;
+            padding: 5px 8px;
+            font-size: 13px;
+            text-align: center;
+        }
+        .tuner-row select {
+            flex: 1;
+            background: #0f1624;
+            border: 1px solid #1e2a45;
+            border-radius: 8px;
+            color: #e2e8f0;
+            padding: 5px 8px;
+            font-size: 12px;
+        }
+
+        .divider {
+            border: none;
+            border-top: 1px solid #1e2a45;
+            margin: 12px 0;
+        }
     </style>
 </head>
 <body>
@@ -52,14 +276,23 @@
 <h2>G69 Dashboard</h2>
 <p class="subtitle">BLE Health Monitor</p>
 
+<!-- Pairing instructions — shown before first connect -->
+<div class="infobox" id="pairingHint">
+    <b>⚠️ Before connecting — pair your watch first:</b><br>
+    <div class="step"><div class="num">1</div><div>Open your iPhone <b>Settings → Bluetooth</b> and pair <b>G69_E702</b> there first. This creates the bond the watch requires.</div></div>
+    <div class="step"><div class="num">2</div><div>Come back here and tap <b>Connect Watch</b>. The watch will connect without dropping.</div></div>
+    <div class="step"><div class="num">3</div><div>If it still drops, tap <b>Reconnect (Paired)</b> which targets the already-bonded device directly.</div></div>
+</div>
+
 <div class="status-bar">
     <div class="dot" id="dot"></div>
     <span id="statusText">Not connected</span>
 </div>
 
-<button class="btn"           id="connectBtn">CONNECT WATCH</button>
-<button class="btn btn-red"   id="disconnectBtn" style="display:none;">DISCONNECT</button>
-<button class="btn btn-green" id="exportBtn"     style="display:none;">EXPORT CSV FOR APPLE HEALTH</button>
+<button class="btn"                        id="connectBtn">CONNECT WATCH</button>
+<button class="btn btn-amber btn-small"    id="reconnectBtn" style="display:none;">↩ RECONNECT (PAIRED)</button>
+<button class="btn btn-red"                id="disconnectBtn" style="display:none;">DISCONNECT</button>
+<button class="btn btn-green"              id="exportBtn"     style="display:none;">EXPORT CSV FOR APPLE HEALTH</button>
 
 <div class="grid">
     <div class="card" id="card-temp" style="--accent:#06b6d4">
@@ -86,42 +319,57 @@
 
 <div class="tabs">
     <button class="tab active" onclick="switchTab('log')">LOG</button>
-    <button class="tab" onclick="switchTab('raw')">RAW PACKETS</button>
-    <button class="tab" onclick="switchTab('tune')">TUNE OFFSETS</button>
+    <button class="tab"        onclick="switchTab('raw')">RAW PACKETS</button>
+    <button class="tab"        onclick="switchTab('tune')">TUNE OFFSETS</button>
 </div>
 
+<!-- LOG TAB -->
 <div id="tab-log" class="panel active">
     <div class="log-header">
         <span>Console</span>
         <button class="log-clear" onclick="clearLog()">Clear</button>
     </div>
-    <div id="log" class="log">Ready. Press CONNECT WATCH above.</div>
+    <div id="log" class="log">Ready. Pair your watch in iOS Settings first, then press CONNECT WATCH.</div>
 </div>
 
+<!-- RAW PACKETS TAB -->
 <div id="tab-raw" class="panel">
     <div class="raw-label">Last raw packet (hex):</div>
-    <div id="rawBox" class="raw-box">No packets yet</div>
-    <div class="raw-label" style="margin-top:8px;">Channel: <span id="chanLabel">—</span> &nbsp;|&nbsp; Packets: <span id="pktCount">0</span></div>
+    <div id="rawBox" class="raw-box">No packets received yet.<br>Once connected, raw bytes appear here.</div>
+    <div class="raw-meta">
+        <span>Channel: <span id="chanLabel">—</span></span>
+        <span>Total packets: <span id="pktCount">0</span></span>
+    </div>
+    <div class="hint" style="margin-top:10px;">
+        <b>How to read this:</b> Each pair of hex digits is one byte. 
+        Your original working version decoded Temp from bytes 0–1 (as a 16-bit little-endian number divided by 10), 
+        and HRV from byte 2 (single byte). Use the <b>Tune Offsets</b> tab to adjust if values look wrong.
+    </div>
 </div>
 
+<!-- TUNE OFFSETS TAB -->
 <div id="tab-tune" class="panel">
-    <div class="hint"><b>Adjust byte offsets</b> if values look wrong. Original working offsets: Temp=0 (UInt16 LE ÷10), HRV=2 (UInt8), HR=3, SpO2=4.</div>
+    <div class="hint">
+        <b>Byte offset tuning:</b> Connect your watch, then check RAW PACKETS to see what bytes are coming in. 
+        Adjust the offset numbers below to map the right bytes to each metric. 
+        Your original working values are pre-filled: Temp at 0 (UInt16 LE ÷10), HRV at 2 (UInt8).
+    </div>
     <div class="tuner">
         <div class="tuner-row">
-            <label>Temp offset:</label>
+            <label>Skin Temp:</label>
             <input type="number" id="off-temp" value="0" min="0" max="30">
             <select id="type-temp">
                 <option value="uint16le" selected>UInt16 LE ÷10</option>
                 <option value="uint16be">UInt16 BE ÷10</option>
-                <option value="uint8">UInt8</option>
+                <option value="uint8">UInt8 (raw)</option>
                 <option value="uint8d10">UInt8 ÷10</option>
             </select>
         </div>
         <div class="tuner-row">
-            <label>HRV offset:</label>
+            <label>HRV:</label>
             <input type="number" id="off-hrv" value="2" min="0" max="30">
             <select id="type-hrv">
-                <option value="uint8" selected>UInt8</option>
+                <option value="uint8" selected>UInt8 (raw)</option>
                 <option value="uint16le">UInt16 LE</option>
                 <option value="uint8d10">UInt8 ÷10</option>
             </select>
@@ -130,38 +378,67 @@
             <label>Heart Rate:</label>
             <input type="number" id="off-hr" value="3" min="0" max="30">
             <select id="type-hr">
-                <option value="uint8" selected>UInt8</option>
+                <option value="uint8" selected>UInt8 (raw)</option>
                 <option value="uint16le">UInt16 LE</option>
             </select>
         </div>
         <div class="tuner-row">
-            <label>SpO2 offset:</label>
+            <label>SpO2:</label>
             <input type="number" id="off-spo2" value="4" min="0" max="30">
             <select id="type-spo2">
-                <option value="uint8" selected>UInt8</option>
+                <option value="uint8" selected>UInt8 (raw)</option>
                 <option value="uint16le">UInt16 LE</option>
             </select>
         </div>
     </div>
+    <div class="hint" style="margin-top:10px;">
+        <b>Value ranges used for auto-detection:</b><br>
+        Temp: 30–45 °C &nbsp;|&nbsp; HRV: 5–250 ms &nbsp;|&nbsp; HR: 40–220 bpm &nbsp;|&nbsp; SpO2: 70–100%<br>
+        Values outside these ranges are silently ignored. If a metric never appears, widen its offset search.
+    </div>
 </div>
 
 <script>
+// ─── Known UUIDs from your BLE scanner ───────────────────────────────────────
+const NORDIC_SVC  = '6e40fff0-b5a3-f393-e0a9-e50e24dcca9e';
+const NORDIC_RX   = '6e400002-b5a3-f393-e0a9-e50e24dcca9e'; // write
+const NORDIC_TX   = '6e400003-b5a3-f393-e0a9-e50e24dcca9e'; // notify
+
+const CUSTOM1_SVC = 'de5bf728-d711-4e47-af26-65e3012a5dc7';
+const CUSTOM1_W   = 'de5bf72a-d711-4e47-af26-65e3012a5dc7'; // write
+const CUSTOM1_N   = 'de5bf729-d711-4e47-af26-65e3012a5dc7'; // notify
+
+// FEE7 / FEA1 / FEA2 use short UUIDs (these work with getPrimaryService)
+const FEE7  = 0xfee7;
+const FEA1  = 0xfea1; // notify
+const FEA2  = 0xfea2; // write
+
+const BAT_SVC = 0x180f;
+const BAT_CHR = 0x2a19;
+
+// ─── Trigger commands to ask watch for data ───────────────────────────────────
+const TRIGGERS = [
+    new Uint8Array([0xAB, 0x00, 0x04, 0xFF, 0x31, 0x80, 0x01]),
+    new Uint8Array([0xAB, 0x00, 0x04, 0xFF, 0x31, 0x80, 0x02]),
+    new Uint8Array([0x01, 0x10, 0x00]),
+    new Uint8Array([0x01]),
+    new Uint8Array([0xEE, 0x00, 0x00, 0x00]),
+];
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let device     = null;
+let server     = null;
+let keepAlive  = null;
+let reconnectTimer = null;
+let pktCount   = 0;
+let metrics    = { temp: null, hrv: null, hr: null, spo2: null };
+let dataLog    = [];
+
+// ─── DOM shortcuts ────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 const logDiv = $('log');
 
-let device = null, server = null, keepAlive = null;
-let pktCount = 0;
-let metrics = { temp: null, hrv: null, hr: null, spo2: null };
-let dataLog = [];
-
-// Known UUIDs from BLE scan — used AFTER connecting, not in requestDevice
-const NORDIC_SVC  = '6e40fff0-b5a3-f393-e0a9-e50e24dcca9e';
-const NORDIC_RX   = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
-const NORDIC_TX   = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
-const CUSTOM1_SVC = 'de5bf728-d711-4e47-af26-65e3012a5dc7';
-const CUSTOM1_W   = 'de5bf72a-d711-4e47-af26-65e3012a5dc7';
-const CUSTOM1_N   = 'de5bf729-d711-4e47-af26-65e3012a5dc7';
-
+// ─── Logging ─────────────────────────────────────────────────────────────────
 function log(msg, color) {
     const line = document.createElement('div');
     line.textContent = '> ' + msg;
@@ -169,190 +446,346 @@ function log(msg, color) {
     logDiv.appendChild(line);
     logDiv.scrollTop = logDiv.scrollHeight;
 }
-function clearLog() { while (logDiv.firstChild) logDiv.removeChild(logDiv.firstChild); }
+function clearLog() {
+    while (logDiv.firstChild) logDiv.removeChild(logDiv.firstChild);
+}
+
+// ─── Status indicator ────────────────────────────────────────────────────────
 function setStatus(text, state) {
     $('statusText').textContent = text;
     $('dot').className = 'dot ' + (state || '');
 }
+
+// ─── Card / metric display ────────────────────────────────────────────────────
 function setVal(id, html) {
-    const el = $(id); el.innerHTML = html; el.classList.remove('stale');
-    const c = document.getElementById('card-' + id); if (c) c.classList.add('active');
-}
-function switchTab(name) {
-    ['log','raw','tune'].forEach(t => $('tab-'+t).classList.toggle('active', t===name));
-    document.querySelectorAll('.tab').forEach((b,i) => b.classList.toggle('active', ['log','raw','tune'][i]===name));
+    const el = $(id);
+    el.innerHTML = html;
+    el.classList.remove('stale');
+    const card = document.getElementById('card-' + id);
+    if (card) card.classList.add('active');
 }
 
+// ─── Tab switching ────────────────────────────────────────────────────────────
+function switchTab(name) {
+    ['log', 'raw', 'tune'].forEach(t => {
+        $('tab-' + t).classList.toggle('active', t === name);
+    });
+    document.querySelectorAll('.tab').forEach((btn, i) => {
+        btn.classList.toggle('active', ['log', 'raw', 'tune'][i] === name);
+    });
+}
+
+// ─── Packet value reader ──────────────────────────────────────────────────────
 function readVal(dv, offset, type) {
     if (offset >= dv.byteLength) return null;
-    switch(type) {
-        case 'uint16le': return dv.byteLength >= offset+2 ? dv.getUint16(offset, true)/10 : null;
-        case 'uint16be': return dv.byteLength >= offset+2 ? dv.getUint16(offset, false)/10 : null;
-        case 'uint8':    return dv.getUint8(offset);
-        case 'uint8d10': return dv.getUint8(offset)/10;
+    switch (type) {
+        case 'uint16le':  return dv.byteLength >= offset + 2 ? dv.getUint16(offset, true)  / 10 : null;
+        case 'uint16be':  return dv.byteLength >= offset + 2 ? dv.getUint16(offset, false) / 10 : null;
+        case 'uint8':     return dv.getUint8(offset);
+        case 'uint8d10':  return dv.getUint8(offset) / 10;
+        default:          return null;
     }
-    return null;
 }
 
+// ─── Packet parser ────────────────────────────────────────────────────────────
 function parsePacket(data, channel) {
     pktCount++;
-    $('pktCount').textContent = pktCount;
+    $('pktCount').textContent  = pktCount;
     $('chanLabel').textContent = channel;
+
+    // Build hex string
     const bytes = [];
-    for (let i = 0; i < data.byteLength; i++)
-        bytes.push(data.getUint8(i).toString(16).padStart(2,'0').toUpperCase());
-    $('rawBox').textContent = bytes.join(' ') + '  (' + data.byteLength + 'b)';
+    for (let i = 0; i < data.byteLength; i++) {
+        bytes.push(data.getUint8(i).toString(16).padStart(2, '0').toUpperCase());
+    }
+    $('rawBox').textContent = bytes.join(' ') + '\n(' + data.byteLength + ' bytes, channel: ' + channel + ')';
+
+    // Read each metric using tuner offsets
+    const rv = (offId, typeId) => readVal(data, parseInt($(offId).value), $(typeId).value);
 
     let updated = false;
-    const rv = (off, type) => readVal(data, parseInt($(off).value), $(type).value);
 
-    const t = rv('off-temp','type-temp');
-    if (t !== null && t > 30 && t < 45) { metrics.temp = t.toFixed(1); setVal('temp', metrics.temp+'<span class="unit">°C</span>'); updated=true; }
-    const h = rv('off-hrv','type-hrv');
-    if (h !== null && h > 5 && h < 250) { metrics.hrv = Math.round(h); setVal('hrv', metrics.hrv+'<span class="unit">ms</span>'); updated=true; }
-    const hr = rv('off-hr','type-hr');
-    if (hr !== null && hr > 40 && hr < 220) { metrics.hr = Math.round(hr); setVal('hr', metrics.hr+'<span class="unit">bpm</span>'); updated=true; }
-    const s = rv('off-spo2','type-spo2');
-    if (s !== null && s >= 70 && s <= 100) { metrics.spo2 = Math.round(s); setVal('spo2', metrics.spo2+'<span class="unit">%</span>'); updated=true; }
+    const t = rv('off-temp', 'type-temp');
+    if (t !== null && t > 30 && t < 45) {
+        metrics.temp = t.toFixed(1);
+        setVal('temp', metrics.temp + '<span class="unit">°C</span>');
+        updated = true;
+    }
 
-    if (updated) { dataLog.push({time:new Date().toISOString(),...metrics}); $('exportBtn').style.display='block'; }
+    const h = rv('off-hrv', 'type-hrv');
+    if (h !== null && h > 5 && h < 250) {
+        metrics.hrv = Math.round(h);
+        setVal('hrv', metrics.hrv + '<span class="unit">ms</span>');
+        updated = true;
+    }
+
+    const hr = rv('off-hr', 'type-hr');
+    if (hr !== null && hr > 40 && hr < 220) {
+        metrics.hr = Math.round(hr);
+        setVal('hr', metrics.hr + '<span class="unit">bpm</span>');
+        updated = true;
+    }
+
+    const s = rv('off-spo2', 'type-spo2');
+    if (s !== null && s >= 70 && s <= 100) {
+        metrics.spo2 = Math.round(s);
+        setVal('spo2', metrics.spo2 + '<span class="unit">%</span>');
+        updated = true;
+    }
+
+    if (updated) {
+        dataLog.push({ time: new Date().toISOString(), ...metrics });
+        $('exportBtn').style.display = 'block';
+    }
 }
 
-async function tryHook(getChar_N, getChar_W, label, cmds) {
+// ─── Hook one notify characteristic ──────────────────────────────────────────
+async function tryHook(getNotify, getWrite, label) {
     try {
-        const n = await getChar_N();
-        const w = await getChar_W().catch(() => null);
-        await n.startNotifications();
-        n.addEventListener('characteristicvaluechanged', e => parsePacket(e.target.value, label));
+        const notifyChar = await getNotify();
+        const writeChar  = await getWrite().catch(() => null);
+
+        await notifyChar.startNotifications();
+        notifyChar.addEventListener('characteristicvaluechanged', e => {
+            parsePacket(e.target.value, label);
+        });
         log('✓ Hooked: ' + label, '#22c55e');
-        if (w && cmds) {
-            for (const cmd of cmds) {
-                try { await w.writeValue(cmd); await new Promise(r=>setTimeout(r,200)); } catch(e){}
+
+        if (writeChar) {
+            // Send all trigger commands — we don't know which one works
+            for (const cmd of TRIGGERS) {
+                try {
+                    await writeChar.writeValue(cmd);
+                    const hex = Array.from(cmd).map(b => b.toString(16).padStart(2, '0')).join(' ');
+                    log('  → Sent: ' + hex);
+                    await new Promise(r => setTimeout(r, 150));
+                } catch (err) { /* try next */ }
             }
+            // Keep-alive: resend first trigger every 3 seconds
             if (!keepAlive) {
                 keepAlive = setInterval(async () => {
-                    try { await w.writeValue(cmds[0]); } catch(e){}
-                }, 2000);
+                    try { await writeChar.writeValue(TRIGGERS[0]); } catch (e) {}
+                }, 3000);
             }
+        } else {
+            log('  (no write char — watch will push data passively)');
         }
         return true;
-    } catch(e) {
-        log('✗ ' + label + ': ' + (e.message||'failed'), '#fb923c');
+    } catch (e) {
+        log('✗ ' + label + ': ' + (e.message || 'failed'), '#fb923c');
         return false;
     }
 }
 
+// ─── Hook all services after GATT connected ───────────────────────────────────
+async function hookAllServices() {
+    log('Discovering all services…');
+
+    // List all services for diagnostics
+    try {
+        const all = await server.getPrimaryServices();
+        log('Found ' + all.length + ' services:');
+        for (const s of all) log('  • ' + s.uuid);
+    } catch (e) {
+        log('Service discovery warning: ' + e.message, '#fb923c');
+    }
+
+    let hooked = 0;
+
+    // 1. Nordic UART (most likely health data channel)
+    hooked += await tryHook(
+        () => server.getPrimaryService(NORDIC_SVC).then(s => s.getCharacteristic(NORDIC_TX)),
+        () => server.getPrimaryService(NORDIC_SVC).then(s => s.getCharacteristic(NORDIC_RX)),
+        'Nordic UART'
+    ) ? 1 : 0;
+
+    // 2. Custom service DE5BF728
+    hooked += await tryHook(
+        () => server.getPrimaryService(CUSTOM1_SVC).then(s => s.getCharacteristic(CUSTOM1_N)),
+        () => server.getPrimaryService(CUSTOM1_SVC).then(s => s.getCharacteristic(CUSTOM1_W)),
+        'DE5BF728'
+    ) ? 1 : 0;
+
+    // 3. Custom service FEE7
+    hooked += await tryHook(
+        () => server.getPrimaryService(FEE7).then(s => s.getCharacteristic(FEA1)),
+        () => server.getPrimaryService(FEE7).then(s => s.getCharacteristic(FEA2)),
+        'FEE7'
+    ) ? 1 : 0;
+
+    // Battery (read-only, separate)
+    try {
+        const bsvc = await server.getPrimaryService(BAT_SVC);
+        const bchr = await bsvc.getCharacteristic(BAT_CHR);
+        const bval = await bchr.readValue();
+        const pct  = bval.getUint8(0);
+        $('battery').innerHTML = pct + '<span class="unit">%</span>';
+        $('battery').classList.remove('stale');
+        $('card-bat').classList.add('active');
+        log('Battery: ' + pct + '%', '#22c55e');
+    } catch (e) {
+        log('Battery: not available');
+    }
+
+    const colour = hooked > 0 ? '#22c55e' : '#f87171';
+    log(hooked + ' channel(s) hooked. Waiting for data…', colour);
+
+    if (hooked > 0) {
+        setStatus('Connected — waiting for data…', 'live');
+    } else {
+        setStatus('Connected but no data channels', 'warn');
+    }
+
+    $('connectBtn').style.display    = 'none';
+    $('reconnectBtn').style.display  = 'block';
+    $('disconnectBtn').style.display = 'block';
+    $('pairingHint').style.display   = 'none';
+}
+
+// ─── Main connect ─────────────────────────────────────────────────────────────
 async function connectWatch() {
     $('connectBtn').disabled = true;
-    setStatus('Scanning…','');
-    log('Opening BLE scanner…');
+    setStatus('Scanning…', '');
+    log('Opening BLE scanner — select G69_E702…');
 
     try {
-        // NO optionalServices — Bluefy crashes if it can't parse them.
-        // We use getPrimaryServices() after connecting instead.
+        // No optionalServices — Bluefy crashes trying to parse them.
+        // We call getPrimaryServices() after connecting instead.
         device = await navigator.bluetooth.requestDevice({
             acceptAllDevices: true
         });
 
         device.addEventListener('gattserverdisconnected', onDisconnected);
-        log('Found: ' + (device.name || 'unnamed'));
-        setStatus('Connecting…','');
-        server = await device.gatt.connect();
-        log('GATT connected. Discovering services…');
-        await new Promise(r => setTimeout(r, 600));
+        log('Found: ' + (device.name || 'unnamed device'));
+        setStatus('Connecting to GATT…', '');
 
-        // Get ALL services without needing to declare them upfront
-        let allServices = [];
-        try {
-            allServices = await server.getPrimaryServices();
-            log('Found ' + allServices.length + ' services total:');
-            for (const svc of allServices) {
-                log('  SVC: ' + svc.uuid);
-            }
-        } catch(e) {
-            log('getPrimaryServices failed: ' + e.message + ' — trying by UUID directly', '#fb923c');
+        server = await device.gatt.connect();
+        log('GATT connected.');
+
+        // Give the watch time to settle after connection —
+        // rushing into service discovery triggers the security drop.
+        log('Stabilising connection (3s)…');
+        await new Promise(r => setTimeout(r, 3000));
+
+        // Confirm still connected after the delay
+        if (!device.gatt.connected) {
+            log('Watch dropped during stabilisation — try pairing in iOS Settings first.', '#f87171');
+            setStatus('Dropped — pair in Settings first', 'error');
+            $('connectBtn').disabled = false;
+            return;
         }
 
-        const TRIGGERS = [
-            new Uint8Array([0xAB, 0x00, 0x04, 0xFF, 0x31, 0x80, 0x01]),
-            new Uint8Array([0x01, 0x10, 0x00]),
-            new Uint8Array([0x01]),
-        ];
+        await hookAllServices();
 
-        let hooked = 0;
-
-        // Nordic UART TX/RX
-        hooked += await tryHook(
-            () => server.getPrimaryService(NORDIC_SVC).then(s => s.getCharacteristic(NORDIC_TX)),
-            () => server.getPrimaryService(NORDIC_SVC).then(s => s.getCharacteristic(NORDIC_RX)),
-            'Nordic UART', TRIGGERS
-        ) ? 1 : 0;
-
-        // Custom DE5BF728
-        hooked += await tryHook(
-            () => server.getPrimaryService(CUSTOM1_SVC).then(s => s.getCharacteristic(CUSTOM1_N)),
-            () => server.getPrimaryService(CUSTOM1_SVC).then(s => s.getCharacteristic(CUSTOM1_W)),
-            'DE5BF728', TRIGGERS
-        ) ? 1 : 0;
-
-        // FEE7 with short UUIDs
-        hooked += await tryHook(
-            () => server.getPrimaryService(0xfee7).then(s => s.getCharacteristic(0xfea1)),
-            () => server.getPrimaryService(0xfee7).then(s => s.getCharacteristic(0xfea2)),
-            'FEE7', TRIGGERS
-        ) ? 1 : 0;
-
-        // Battery (read-only, non-blocking)
-        try {
-            const bsvc = await server.getPrimaryService(0x180f);
-            const bchr = await bsvc.getCharacteristic(0x2a19);
-            const bval = await bchr.readValue();
-            const pct  = bval.getUint8(0);
-            $('battery').innerHTML = pct + '<span class="unit">%</span>';
-            $('battery').classList.remove('stale');
-            document.getElementById('card-bat').classList.add('active');
-            log('Battery: ' + pct + '%', '#22c55e');
-        } catch(e) { log('Battery: not available'); }
-
-        log(hooked + ' channel(s) hooked. Waiting for packets…', hooked > 0 ? '#22c55e' : '#f87171');
-        setStatus('Connected — waiting for data…', 'live');
-        $('connectBtn').style.display = 'none';
-        $('disconnectBtn').style.display = 'block';
-
-    } catch(e) {
-        const cancelled = e.name === 'NotFoundError' || (e.message||'').toLowerCase().includes('cancel');
-        log(cancelled ? 'Scan cancelled.' : 'Error: ' + (e.message || String(e)), cancelled ? '#fb923c' : '#f87171');
-        setStatus(cancelled ? 'Not connected' : 'Failed', cancelled ? '' : 'error');
+    } catch (e) {
+        const cancelled = e.name === 'NotFoundError' || (e.message || '').toLowerCase().includes('cancel');
+        if (cancelled) {
+            log('Scan cancelled.', '#fb923c');
+            setStatus('Not connected', '');
+        } else {
+            log('Error: ' + (e.message || String(e)), '#f87171');
+            setStatus('Failed — see log', 'error');
+        }
         $('connectBtn').disabled = false;
     }
 }
 
-function onDisconnected() {
-    log('Disconnected.', '#f87171');
-    setStatus('Disconnected', 'error');
-    if (keepAlive) { clearInterval(keepAlive); keepAlive = null; }
-    $('connectBtn').disabled = false;
-    $('connectBtn').style.display = 'block';
-    $('disconnectBtn').style.display = 'none';
+// ─── Reconnect to already-paired device (skips picker) ───────────────────────
+async function reconnectWatch() {
+    if (!device) {
+        log('No device remembered — use Connect Watch first.', '#fb923c');
+        return;
+    }
+    $('reconnectBtn').disabled = true;
+    setStatus('Reconnecting…', '');
+    log('Reconnecting to ' + (device.name || 'device') + '…');
+
+    try {
+        server = await device.gatt.connect();
+        log('GATT reconnected.');
+        log('Stabilising (3s)…');
+        await new Promise(r => setTimeout(r, 3000));
+
+        if (!device.gatt.connected) {
+            log('Dropped again during stabilisation.', '#f87171');
+            setStatus('Dropped again', 'error');
+            $('reconnectBtn').disabled = false;
+            return;
+        }
+
+        // Clear old keep-alive before hooking again
+        if (keepAlive) { clearInterval(keepAlive); keepAlive = null; }
+        await hookAllServices();
+    } catch (e) {
+        log('Reconnect error: ' + (e.message || String(e)), '#f87171');
+        setStatus('Reconnect failed', 'error');
+    }
+    $('reconnectBtn').disabled = false;
 }
 
-$('connectBtn').addEventListener('click', connectWatch);
-$('disconnectBtn').addEventListener('click', () => {
+// ─── Disconnection handler ────────────────────────────────────────────────────
+function onDisconnected() {
+    log('Watch disconnected.', '#f87171');
+    setStatus('Disconnected', 'error');
     if (keepAlive) { clearInterval(keepAlive); keepAlive = null; }
-    if (device && device.gatt.connected) device.gatt.disconnect();
-    onDisconnected();
+
+    $('connectBtn').disabled    = false;
+    $('connectBtn').style.display    = 'block';
+    $('reconnectBtn').style.display  = device ? 'block' : 'none';
+    $('disconnectBtn').style.display = 'none';
+
+    // Auto-attempt reconnect after 2 seconds if we have the device reference
+    if (device) {
+        log('Auto-reconnecting in 2s…', '#fb923c');
+        reconnectTimer = setTimeout(() => reconnectWatch(), 2000);
+    }
+}
+
+// ─── Button wiring ────────────────────────────────────────────────────────────
+$('connectBtn').addEventListener('click', () => {
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+    connectWatch();
 });
 
+$('reconnectBtn').addEventListener('click', () => {
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+    reconnectWatch();
+});
+
+$('disconnectBtn').addEventListener('click', () => {
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+    if (keepAlive) { clearInterval(keepAlive); keepAlive = null; }
+    if (device && device.gatt.connected) device.gatt.disconnect();
+    // Manually trigger UI reset without auto-reconnect
+    log('Manually disconnected.', '#fb923c');
+    setStatus('Disconnected', 'error');
+    device = null; // clear device so auto-reconnect doesn't fire
+    $('connectBtn').disabled    = false;
+    $('connectBtn').style.display    = 'block';
+    $('reconnectBtn').style.display  = 'none';
+    $('disconnectBtn').style.display = 'none';
+});
+
+// ─── CSV Export ───────────────────────────────────────────────────────────────
 $('exportBtn').addEventListener('click', () => {
-    if (!dataLog.length) { log('No data yet.'); return; }
+    if (!dataLog.length) {
+        log('No data to export yet — wait for packets.');
+        return;
+    }
     let csv = 'Timestamp,Temp(C),HRV(ms),HR(bpm),SpO2(%)\n';
-    dataLog.forEach(r => { csv += r.time+','+(r.temp||'')+','+(r.hrv||'')+','+(r.hr||'')+','+(r.spo2||'')+'\n'; });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-    a.download = 'G69_health_'+new Date().toISOString().slice(0,10)+'.csv';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    log('Exported '+dataLog.length+' rows → import via Shortcuts into Apple Health','#22c55e');
+    dataLog.forEach(row => {
+        csv += row.time + ',' + (row.temp || '') + ',' + (row.hrv || '') + ',' + (row.hr || '') + ',' + (row.spo2 || '') + '\n';
+    });
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a    = document.createElement('a');
+    a.href     = URL.createObjectURL(blob);
+    a.download = 'G69_health_' + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    log('Exported ' + dataLog.length + ' row(s) → open in Shortcuts to import into Apple Health', '#22c55e');
 });
 </script>
 </body>
 </html>
+
